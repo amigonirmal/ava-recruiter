@@ -675,6 +675,17 @@ const LandingPage = ({ user, onLogout }) => {
 
         {/* ── TOP BAR (title + actions) ── */}
         <header className="rl-topbar">
+
+          {/* Hamburger — mobile only, opens the sidebar drawer */}
+          <button className="rl-mob-toggle" onClick={toggleSidebar} aria-label="Open navigation">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6"  x2="21" y2="6"  />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
           <div className="rl-topbar-title">
             {view === 'dashboard'  && 'DASHBOARD'}
             {view === 'candidates' && 'CANDIDATE POOL'}
@@ -683,8 +694,16 @@ const LandingPage = ({ user, onLogout }) => {
             {view === 'analytics'  && 'TALENT ANALYTICS'}
             {view === 'settings'   && 'SETTINGS'}
           </div>
+
           <div className="rl-topbar-actions">
-            <div className="rl-ethical-tag">
+            {/* + POST ROLE — visible on jobs view, all screen sizes */}
+            {(view === 'jobs' || view === 'post-job') && (
+              <button className="rl-cta-btn" onClick={() => setView('post-job')}
+                style={{ padding: '0.35rem 0.85rem', fontSize: '0.62rem' }}>
+                + POST ROLE
+              </button>
+            )}
+            <div className="rl-ethical-tag rl-hide-mobile">
               <span className="rl-pulse" />AVA GUIDES — HUMAN DECIDES
             </div>
           </div>

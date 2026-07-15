@@ -387,12 +387,14 @@
   font-weight: 700;
   letter-spacing: 0.22em;
   color: var(--color-teal);
+  flex: 1;
 }
 
 .rl-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .rl-ethical-tag {
@@ -405,6 +407,26 @@
   border: 1px solid var(--color-black-border);
   border-radius: 20px;
   padding: 0.3rem 0.75rem;
+}
+
+/* ── Mobile hamburger — hidden on desktop ────────────────────── */
+.rl-mob-toggle {
+  display: none;          /* hidden by default (desktop) */
+  background: none;
+  border: 1px solid var(--color-black-border);
+  border-radius: 5px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+.rl-mob-toggle:hover {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
 }
 
 /* ── Main scroll area ────────────────────────────────────────── */
@@ -1346,6 +1368,10 @@
   }
   .rl-sidebar-brand   { justify-content: flex-start !important; }
   .rl-sidebar-footer  { padding: 1rem 1.25rem !important; }
+
+  /* Show hamburger, hide desktop-only elements */
+  .rl-mob-toggle       { display: flex; }
+  .rl-hide-mobile      { display: none !important; }
 
   .rl-topbar           { padding: 0 1rem; }
   .rl-main             { padding: 1.25rem; }
