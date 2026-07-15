@@ -1,0 +1,52 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+
+:root {
+  /* ── AVA Theme: Pure Black + Neon Turquoise ── */
+  --color-black:            #000000;
+  --color-black-mid:        #0A0A0A;
+  --color-black-light:      #111114;
+  --color-black-border:     #1E1E24;
+
+  --color-teal:             #00E6D2;
+  --color-teal-dim:         #00B8A9;
+  --color-teal-dark:        #007A70;
+  --color-teal-glow:        rgba(0, 230, 210, 0.30);
+  --color-teal-glow-strong: rgba(0, 230, 210, 0.55);
+
+  --color-text-primary:     #E8F0EE;
+  --color-text-secondary:   #7A9E99;
+  --color-text-muted:       #3D5C58;
+
+  --color-success:          #22C55E;
+  --color-warning:          #F59E0B;
+  --color-danger:           #FF3B4E;
+
+  --gradient-primary:       linear-gradient(135deg, #003330 0%, #005550 60%, #007A70 100%);
+
+  --border-radius-card:     16px;
+  --border-radius-inner:    10px;
+  --border-radius-small:    6px;
+
+  --font-brand:             'Satoshi', 'Segoe UI', system-ui, sans-serif;
+  --letter-spacing-brand:   0.12em;
+
+  /* Legacy aliases */
+  --color-crimson-dark:     #001A18;
+  --color-charcoal:         var(--color-black);
+  --color-charcoal-mid:     var(--color-black-mid);
+  --color-charcoal-border:  var(--color-black-border);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-brand);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--color-black);
+  min-height: 100vh;
+  color: var(--color-text-primary);
+}
+
+#root { min-height: 100vh; }
