@@ -150,12 +150,14 @@ const JDVisualView = ({ file, onPost, onBack }) => {
   ]
 
   // ── Shared style tokens ──────────────────────────────────────────────
+  // panel uses MONO — all terminal panels get monospace regardless of parent
   const panel = {
     background: 'oklch(18% 0.03 250)',
     border:     '1px solid oklch(45% 0.16 195 / 0.5)',
     borderRadius: 4,
     boxShadow:  '0 0 0 1px oklch(60% 0.2 195 / 0.12), 0 0 20px oklch(60% 0.22 195 / 0.18)',
     display: 'flex', flexDirection: 'column',
+    fontFamily: MONO,
   }
   const panelHead = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -173,8 +175,9 @@ const JDVisualView = ({ file, onPost, onBack }) => {
   const muted   = { fontSize: 10, color: 'oklch(55% 0.02 250)', letterSpacing: '0.04em', marginTop: 6 }
 
   return (
+    // Root wrapper uses APP_FONT (Satoshi) — panels override with MONO via the panel token
     <div style={{
-      fontFamily: MONO,
+      fontFamily: APP_FONT,
       background: 'oklch(13% 0.025 250)',
       color: 'oklch(90% 0.02 145)',
       padding: 'clamp(10px,1.5vw,20px)',
