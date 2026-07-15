@@ -62,12 +62,7 @@ const JobCard = ({ title, dept, applicants, matched, urgency }) => {
 }
 
 // ─── Human Capital Market Terminal (HCMT) ─────────────────────────────────────
-// Faithful port of Human Capital Terminal.html
-// Colours: oklch space · JetBrains Mono · teal glow borders · green bars · amber badge
-
-// HCMT uses JetBrains Mono for the terminal panels (matches the reference HTML exactly).
-// Action buttons and nav chrome fall back to the app's brand font (Satoshi).
-const MONO     = "'JetBrains Mono','ui-monospace','Courier New',monospace"
+// Uses the app brand font (Satoshi) throughout — matching the left navigation.
 const APP_FONT = "var(--font-brand)"
 
 // Radar — 5-axis pentagon matching the reference exactly
@@ -109,7 +104,7 @@ const HCMTRadar = ({ vectors }) => {
       {axes.map((a, i) => (
         <text key={i} x={labelPts[i].x.toFixed(1)} y={labelPts[i].y.toFixed(1)}
           textAnchor="middle" dominantBaseline="middle"
-          fontSize="8" fill="oklch(75% 0.02 250)" fontFamily={MONO}>{a.label}</text>
+          fontSize="8" fill="oklch(75% 0.02 250)" fontFamily={APP_FONT}>{a.label}</text>
       ))}
     </svg>
   )
@@ -150,14 +145,12 @@ const JDVisualView = ({ file, onPost, onBack }) => {
   ]
 
   // ── Shared style tokens ──────────────────────────────────────────────
-  // panel uses MONO — all terminal panels get monospace regardless of parent
   const panel = {
     background: 'oklch(18% 0.03 250)',
     border:     '1px solid oklch(45% 0.16 195 / 0.5)',
     borderRadius: 4,
     boxShadow:  '0 0 0 1px oklch(60% 0.2 195 / 0.12), 0 0 20px oklch(60% 0.22 195 / 0.18)',
     display: 'flex', flexDirection: 'column',
-    fontFamily: MONO,
   }
   const panelHead = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -175,7 +168,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
   const muted   = { fontSize: 10, color: 'oklch(55% 0.02 250)', letterSpacing: '0.04em', marginTop: 6 }
 
   return (
-    // Root wrapper uses APP_FONT (Satoshi) — panels override with MONO via the panel token
+    // Root uses APP_FONT (Satoshi) — same font as the left navigation
     <div style={{
       fontFamily: APP_FONT,
       background: 'oklch(13% 0.025 250)',
@@ -600,40 +593,50 @@ const LandingPage = ({ user, onLogout }) => {
   ]
 
   return (
-    <div className={`rl-page${collapsed ? ' rl-sidebar-collapsed' : ''}`}>
+    <div className={`rl-page${collapsed ? ' sidebar-collapsed' : ''}`}>
       <div className="rl-bg" />
 
-      {/* ── Mobile overlay ── */}
-      {overlay && <div className="rl-overlay" onClick={() => { setCollapsed(true); setOverlay(false) }} />}
+      {/* ── Mobile overlay — tap outside to close (cv-profile-visualizer pattern) ── */}
+      <div
+        className={`rl-overlay${!collapsed && overlay ? ' visible' : ''}`}
+        onClick={() => { setCollapsed(true); setOverlay(false) }}
+      />
 
       {/* ── LEFT SIDEBAR ── */}
       <aside className={`rl-sidebar${collapsed ? ' collapsed' : ''}`}>
 
-        {/* Header: logo + brand + toggle */}
+        {/* Header: logo + brand + status + toggle — matches cv-profile-visualizer */}
         <div className="rl-sidebar-header">
           <div className="rl-sidebar-brand">
             <img src="/assets/ava-logo.png" alt="AVA" className="rl-sidebar-logo" />
             <div className="rl-sidebar-brand-text rl-hide-collapsed">
-              <div className="rl-sidebar-brand-name">AVA</div>
-              <div className="rl-sidebar-brand-sub">RECRUITER</div>
+              <span className="rl-sidebar-brand-name">AVA</span>
+              <span className="rl-sidebar-brand-sub">RECRUITER</span>
             </div>
           </div>
-          <button className="rl-sidebar-toggle" onClick={toggleSidebar} aria-label="Toggle sidebar">
+
+          {/* Chevron toggle — flips direction like cv-profile-visualizer */}
+          <button
+            className="rl-sidebar-toggle"
+            onClick={toggleSidebar}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }}>
+              style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }}>
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
+
+          {/* Status dot — inside header, hidden when collapsed */}
+          <div className="rl-sidebar-status rl-hide-collapsed">
+            <span className="rl-pulse" />
+            <span className="rl-sidebar-status-text">SYSTEM ACTIVE</span>
+          </div>
         </div>
 
-        {/* Status */}
-        <div className="rl-sidebar-status rl-hide-collapsed">
-          <span className="rl-pulse" />
-          <span className="rl-sidebar-status-text">SYSTEM ACTIVE</span>
-        </div>
-
-        <div className="rl-sidebar-label rl-hide-collapsed">NAVIGATION</div>
+        {/* Module label */}
+        <div className="rl-sidebar-label rl-hide-collapsed">NAVIGATION MODULES</div>
 
         {/* Nav items */}
         <nav className="rl-sidebar-nav">
@@ -646,7 +649,7 @@ const LandingPage = ({ user, onLogout }) => {
             >
               <span className="rl-nav-icon">{Icons[item.id] || Icons.settings}</span>
               <span className="rl-nav-label rl-hide-collapsed">{item.label.toUpperCase()}</span>
-              {item.badge && <span className="rl-nav-badge rl-hide-collapsed">{item.badge}</span>}
+              {item.badge && <span className={`rl-nav-badge${collapsed ? ' rl-hide-collapsed' : ''}`}>{item.badge}</span>}
             </button>
           ))}
         </nav>
@@ -662,6 +665,7 @@ const LandingPage = ({ user, onLogout }) => {
               <span className="rl-user-mini-email">{user.email}</span>
             </div>
           </div>
+          <div className="rl-sidebar-footer-tag rl-hide-collapsed">AVA GUIDES — HUMAN DECIDES</div>
           <button className="rl-sidebar-logout rl-hide-collapsed" onClick={onLogout}>LOGOUT</button>
         </div>
       </aside>
