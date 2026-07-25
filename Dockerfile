@@ -1,9 +1,9 @@
-# ── Stage 1: build ────────────────────────────────────────────────────────────
+# ── Stage 1: build React app ──────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies first (layer-cached unless lockfile changes)
+# Install React app dependencies
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -11,19 +11,31 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# ── Stage 2: serve with nginx ──────────────────────────────────────────────────
-FROM nginx:1.27-alpine AS runner
+# ── Stage 2: install API dependencies ────────────────────────────────────────
+FROM node:20-alpine AS api-deps
 
-# Remove default nginx config
-RUN rm /etc/nginx/conf.d/default.conf
+WORKDIR /api-build
+COPY api/package.json ./
+RUN npm install --omit=dev
 
-# Copy our config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# ── Stage 3: production image (Node serves API + static React dist) ───────────
+FROM node:20-alpine AS runner
 
-# Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Cloud Run sends traffic to PORT env var (default 8080)
+# Copy built React assets
+COPY --from=builder /app/dist ./dist
+
+# Copy seed data (initial jobs.json)
+COPY data/ ./data/
+
+# Copy API source + production node_modules
+COPY api/server.js ./api/server.js
+COPY --from=api-deps /api-build/node_modules ./api/node_modules
+
+# Cloud Run injects PORT=8080; our server defaults to 3001 in dev
+ENV NODE_ENV=production
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+# Run the Express server; it serves /api/* and the React SPA from /dist
+CMD ["node", "api/server.js"]

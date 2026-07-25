@@ -1,0 +1,15 @@
+{
+  "name": "ava-recruiter-api",
+  "version": "1.0.0",
+  "description": "AVA Recruiter — Express API (jobs persistence, GCS)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

@@ -1166,6 +1166,17 @@
 }
 
 /* ── Success screen ──────────────────────────────────────────── */
+.rl-post-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  color: #f87171;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
 .rl-post-success {
   background: var(--color-black-mid);
   border: 1px solid rgba(0, 230, 210, 0.25);

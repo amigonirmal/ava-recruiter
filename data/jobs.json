@@ -1,0 +1,8 @@
+[
+  { "id": "j1", "title": "Senior Data Engineer",   "dept": "Engineering", "location": "London",    "type": "Full-time", "seniority": "Senior", "urgency": "High",   "applicants": 48, "matched": 12, "postedAt": "2025-01-10T09:00:00.000Z" },
+  { "id": "j2", "title": "ML Platform Engineer",   "dept": "AI & ML",     "location": "Remote",    "type": "Full-time", "seniority": "Mid",    "urgency": "High",   "applicants": 31, "matched": 8,  "postedAt": "2025-01-12T10:00:00.000Z" },
+  { "id": "j3", "title": "Product Manager",        "dept": "Product",     "location": "London",    "type": "Full-time", "seniority": "Senior", "urgency": "Medium", "applicants": 67, "matched": 19, "postedAt": "2025-01-14T11:00:00.000Z" },
+  { "id": "j4", "title": "Cloud Infrastructure",   "dept": "DevOps",      "location": "Edinburgh", "type": "Full-time", "seniority": "Mid",    "urgency": "Medium", "applicants": 24, "matched": 7,  "postedAt": "2025-01-15T08:30:00.000Z" },
+  { "id": "j5", "title": "UX Researcher",          "dept": "Design",      "location": "Remote",    "type": "Contract",  "seniority": "Mid",    "urgency": "Low",    "applicants": 39, "matched": 11, "postedAt": "2025-01-16T13:00:00.000Z" },
+  { "id": "j6", "title": "Data Science Manager",   "dept": "Analytics",   "location": "London",    "type": "Full-time", "seniority": "Senior", "urgency": "High",   "applicants": 22, "matched": 6,  "postedAt": "2025-01-17T09:15:00.000Z" }
+]

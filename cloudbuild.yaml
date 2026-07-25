@@ -1,21 +1,23 @@
 # GCP Cloud Build — builds Docker image and deploys to Cloud Run
 # -----------------------------------------------------------------
 # Prerequisites (run once in your GCP project):
-#   gcloud services enable cloudbuild.googleapis.com run.googleapis.com artifactregistry.googleapis.com
+#   gcloud services enable cloudbuild.googleapis.com run.googleapis.com artifactregistry.googleapis.com storage.googleapis.com
 #
 # Substitutions (set in Cloud Build trigger or pass with --substitutions):
 #   _REGION          : GCP region, e.g. europe-west2
 #   _REPO            : Artifact Registry repo name, e.g. ava-recruiter
 #   _SERVICE         : Cloud Run service name, e.g. ava-recruiter
+#   _GCS_BUCKET      : GCS bucket for job persistence, e.g. ava-storage-bucket
 #
 # Usage (manual):
 #   gcloud builds submit --config cloudbuild.yaml \
-#     --substitutions _REGION=europe-west2,_REPO=ava-recruiter,_SERVICE=ava-recruiter
+#     --substitutions _REGION=europe-west2,_REPO=ava-recruiter,_SERVICE=ava-recruiter,_GCS_BUCKET=ava-storage-bucket
 
 substitutions:
   _REGION: europe-west2
   _REPO: ava-recruiter
   _SERVICE: ava-recruiter
+  _GCS_BUCKET: ava-storage-bucket
 
 steps:
   # ── 1. Build the Docker image ────────────────────────────────────────────────
@@ -56,7 +58,8 @@ steps:
       - '--cpu=1'
       - '--min-instances=0'
       - '--max-instances=10'
-      - '--set-env-vars=NODE_ENV=production'
+      - '--set-env-vars=NODE_ENV=production,GCS_BUCKET=${_GCS_BUCKET}'
+      - '--service-account=ava-recruiter-sa@$PROJECT_ID.iam.gserviceaccount.com'
 
 images:
   - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA'

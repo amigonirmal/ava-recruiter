@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './LandingPage.css'
+import { fetchJobs, postJob } from '../services/jobsApi'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
@@ -354,7 +355,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
 }
 
 // ─── Post Job view ────────────────────────────────────────────────────────────
-const PostJobView = ({ onBack }) => {
+const PostJobView = ({ onBack, onJobPosted }) => {
   const [mode, setMode]           = useState(null)        // null | 'visual' | 'manual'
   const [dragOver, setDragOver]   = useState(false)
   const [uploadedFile, setUploaded] = useState(null)
@@ -367,6 +368,8 @@ const PostJobView = ({ onBack }) => {
     niceToHave: '', closingDate: '', urgency: 'Medium',
   })
   const [submitted, setSubmitted] = useState(false)
+  const [posting, setPosting]     = useState(false)
+  const [postError, setPostError] = useState(null)
 
   const handleDrop = useCallback((e) => {
     e.preventDefault(); setDragOver(false)
@@ -379,9 +382,19 @@ const PostJobView = ({ onBack }) => {
     if (file) { setUploaded(file); setMode('visual') }
   }
 
-  const handleManualSubmit = (e) => {
+  const handleManualSubmit = async (e) => {
     e.preventDefault()
-    setSubmitted(true)
+    setPosting(true); setPostError(null)
+    try {
+      const saved = await postJob({ ...form, dept: form.department })
+      onJobPosted?.(saved)
+      setSubmitted(true)
+    } catch (err) {
+      setPostError('Could not save job. Please try again.')
+      console.error(err)
+    } finally {
+      setPosting(false)
+    }
   }
 
   // ── Submitted confirmation ──
@@ -409,7 +422,19 @@ const PostJobView = ({ onBack }) => {
     <JDVisualView
       file={uploadedFile}
       onBack={() => { setUploaded(null); setMode(null) }}
-      onPost={() => setSubmitted(true)}
+      onPost={async () => {
+        try {
+          const saved = await postJob({
+            title: uploadedFile.name.replace(/\.[^.]+$/, ''),
+            dept: '',
+            urgency: 'Medium',
+          })
+          onJobPosted?.(saved)
+        } catch (err) {
+          console.error('postJob (visual):', err)
+        }
+        setSubmitted(true)
+      }}
     />
   )
 
@@ -523,8 +548,11 @@ const PostJobView = ({ onBack }) => {
                 </div>
               </div>
 
+              {postError && <div className="rl-post-error">{postError}</div>}
               <div className="rl-post-actions">
-                <button type="submit" className="rl-cta-btn">POST ROLE &amp; START MATCHING</button>
+                <button type="submit" className="rl-cta-btn" disabled={posting}>
+                  {posting ? 'POSTING…' : 'POST ROLE & START MATCHING'}
+                </button>
                 <button type="button" className="rl-ghost-btn" onClick={() => setMode(null)}>CANCEL</button>
               </div>
             </form>
@@ -551,13 +579,28 @@ const LandingPage = ({ user, onLogout }) => {
   const [view, setView]         = useState('dashboard')
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768)
   const [overlay, setOverlay]   = useState(false)
+  const [jobs, setJobs]         = useState([])
+  const [jobsLoading, setJobsLoading] = useState(true)
+
+  // Load jobs from API on mount
+  useEffect(() => {
+    fetchJobs()
+      .then(data => setJobs(data))
+      .catch(err => console.error('fetchJobs:', err))
+      .finally(() => setJobsLoading(false))
+  }, [])
+
+  // Called by PostJobView after a successful POST /api/jobs
+  const handleJobPosted = (newJob) => {
+    setJobs(prev => [newJob, ...prev])
+  }
 
   const navItems = [
-    { id: 'dashboard',  label: 'Dashboard',  badge: null  },
-    { id: 'jobs',       label: 'Job Roles',  badge: '12'  },
+    { id: 'dashboard',  label: 'Dashboard',  badge: null },
+    { id: 'jobs',       label: 'Job Roles',  badge: jobs.length > 0 ? String(jobs.length) : null },
     { id: 'candidates', label: 'Candidates', badge: '247' },
-    { id: 'analytics',  label: 'Analytics',  badge: null  },
-    { id: 'settings',   label: 'Settings',   badge: null  },
+    { id: 'analytics',  label: 'Analytics',  badge: null },
+    { id: 'settings',   label: 'Settings',   badge: null },
   ]
 
   const handleNav = (id) => {
@@ -581,15 +624,6 @@ const LandingPage = ({ user, onLogout }) => {
     { name: 'Marcus Reid',    role: 'Cloud Infrastructure Lead', score: 810, rating: 'AA',  status: 'Active' },
     { name: 'Priya Nair',     role: 'Data Science Manager',      score: 798, rating: 'A+',  status: 'New' },
     { name: 'James Callahan', role: 'DevOps Engineer',           score: 763, rating: 'A+',  status: 'Active' },
-  ]
-
-  const jobs = [
-    { title: 'Senior Data Engineer',   dept: 'Engineering',   applicants: 48,  matched: 12, urgency: 'High' },
-    { title: 'ML Platform Engineer',   dept: 'AI & ML',       applicants: 31,  matched: 8,  urgency: 'High' },
-    { title: 'Product Manager',        dept: 'Product',       applicants: 67,  matched: 19, urgency: 'Medium' },
-    { title: 'Cloud Infrastructure',   dept: 'DevOps',        applicants: 24,  matched: 7,  urgency: 'Medium' },
-    { title: 'UX Researcher',          dept: 'Design',        applicants: 39,  matched: 11, urgency: 'Low' },
-    { title: 'Data Science Manager',   dept: 'Analytics',     applicants: 22,  matched: 6,  urgency: 'High' },
   ]
 
   return (
@@ -721,7 +755,7 @@ const LandingPage = ({ user, onLogout }) => {
               </div>
               <div className="rl-stats-grid">
                 <StatCard label="Active Candidates"  value="247"  delta="↑ 18 this week"       accent="var(--color-teal)" />
-                <StatCard label="Open Roles"         value="12"   delta="3 high urgency"        accent="#F59E0B" />
+                <StatCard label="Open Roles"         value={String(jobs.length)}   delta={`${jobs.filter(j=>j.urgency==='High').length} high urgency`}  accent="#F59E0B" />
                 <StatCard label="AI Matches Today"   value="63"   delta="↑ 94% accuracy"        accent="#22C55E" />
                 <StatCard label="Avg Talent Score"   value="821"  delta="AA+ cohort"            accent="oklch(68% 0.17 145)" />
                 <StatCard label="Time-to-Shortlist"  value="2.4d" delta="↓ 38% vs manual"       accent="var(--color-teal)" />
@@ -795,7 +829,7 @@ const LandingPage = ({ user, onLogout }) => {
           {view === 'jobs' && (
             <div className="rl-dashboard">
               <div className="rl-page-header">
-                <div><div className="rl-page-title">OPEN JOB ROLES</div><div className="rl-page-sub">12 active roles · AI matching enabled</div></div>
+                <div><div className="rl-page-title">OPEN JOB ROLES</div><div className="rl-page-sub">{jobs.length} active role{jobs.length !== 1 ? 's' : ''} · AI matching enabled</div></div>
                 <button className="rl-cta-btn" onClick={() => setView('post-job')}>+ POST ROLE</button>
               </div>
               <div className="rl-jobs-full-grid">{jobs.map(j=><JobCard key={j.title} {...j}/>)}</div>
@@ -803,7 +837,7 @@ const LandingPage = ({ user, onLogout }) => {
           )}
 
           {/* POST JOB */}
-          {view === 'post-job' && <PostJobView onBack={() => setView('jobs')} />}
+          {view === 'post-job' && <PostJobView onBack={() => setView('jobs')} onJobPosted={handleJobPosted} />}
 
           {/* ANALYTICS */}
           {view === 'analytics' && (
