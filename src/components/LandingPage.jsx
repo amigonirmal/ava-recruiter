@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './LandingPage.css'
 import { fetchJobs, postJob } from '../services/jobsApi'
+import CANDIDATES_DATA from '../data/candidates_final.json'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
@@ -45,7 +46,7 @@ const CandidateRow = ({ name, role, score, status, rating }) => {
   )
 }
 
-const JobCard = ({ title, dept, applicants, matched, urgency }) => {
+const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches }) => {
   const urgencyColor = { High:'#FF3B4E', Medium:'#F59E0B', Low:'#22C55E' }[urgency]
   return (
     <div className="rl-job-card">
@@ -57,7 +58,305 @@ const JobCard = ({ title, dept, applicants, matched, urgency }) => {
         <div className="rl-job-stat"><span>{applicants}</span><label>Applicants</label></div>
         <div className="rl-job-stat"><span style={{ color:'var(--color-teal)' }}>{matched}</span><label>AI Matched</label></div>
       </div>
-      <button className="rl-job-btn">REVIEW MATCHES</button>
+      <button className="rl-job-btn" onClick={onReviewMatches}>REVIEW MATCHES</button>
+    </div>
+  )
+}
+
+// ─── Matching Matrix View ─────────────────────────────────────────────────────
+const MatchingMatrixView = ({ job, onBack }) => {
+  const candidates = CANDIDATES_DATA.candidates
+  const scoreCriteria = CANDIDATES_DATA.scoreCriteria
+  const [selectedCandidate, setSelectedCandidate] = useState(null)
+  const [filter, setFilter] = useState('ALL') // ALL | accepted | not_responded
+
+  const acceptedCount = candidates.filter(c => c.jobApplicationStatus === 'accepted').length
+
+  const filtered = filter === 'ALL'
+    ? candidates
+    : candidates.filter(c => c.jobApplicationStatus === filter)
+
+  // Sort: accepted first, then by overallScore desc
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.jobApplicationStatus === 'accepted' && b.jobApplicationStatus !== 'accepted') return -1
+    if (b.jobApplicationStatus === 'accepted' && a.jobApplicationStatus !== 'accepted') return 1
+    return b.overallScore - a.overallScore
+  })
+
+  const getStatusStyle = (status) => {
+    if (status === 'accepted')      return { border: '1.5px solid #22C55E', boxShadow: '0 0 10px rgba(34,197,94,0.30)', opacity: 1 }
+    if (status === 'not_responded') return { border: '1.5px solid var(--color-black-border)', opacity: 0.55 }
+    if (status === 'rejected')      return { border: '1.5px solid #FF3B4E', opacity: 0.5 }
+    return {}
+  }
+
+  const getRecommendationColor = (color) => ({
+    green: '#22C55E', amber: '#F59E0B', red: '#FF3B4E'
+  }[color] || 'var(--color-teal)')
+
+  const getRatingFromScore = (pct) => {
+    if (pct >= 90) return 'AA+'
+    if (pct >= 80) return 'AA'
+    if (pct >= 70) return 'A+'
+    if (pct >= 60) return 'A'
+    return 'B'
+  }
+
+  // Mini sparkline — draw score bars as tiny SVG path
+  const MiniRadar = ({ candidate }) => {
+    const scores = scoreCriteria.map(c => (candidate.scores[c.key] || 0) / 10)
+    const n = scores.length
+    const cx = 32, cy = 28, r = 20
+    const pts = scores.map((v, i) => {
+      const ang = (i / n) * Math.PI * 2 - Math.PI / 2
+      return [cx + r * v * Math.cos(ang), cy + r * v * Math.sin(ang)]
+    })
+    const poly = pts.map(p => p.join(',')).join(' ')
+    const axes = scores.map((_, i) => {
+      const ang = (i / n) * Math.PI * 2 - Math.PI / 2
+      return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)]
+    })
+    return (
+      <svg width="64" height="56" viewBox="0 0 64 56">
+        <polygon points={axes.map(p=>p.join(',')).join(' ')} fill="none" stroke="rgba(0,230,210,0.12)" strokeWidth="1"/>
+        <polygon points={poly} fill="rgba(0,230,210,0.18)" stroke="rgba(0,230,210,0.7)" strokeWidth="1.5"/>
+      </svg>
+    )
+  }
+
+  // Score bar row for detail panel
+  const ScoreBar = ({ label, score, maxScore }) => {
+    const pct = (score / maxScore) * 100
+    const col = pct >= 80 ? '#22C55E' : pct >= 60 ? 'var(--color-teal)' : '#F59E0B'
+    return (
+      <div className="mm-score-row">
+        <span className="mm-score-label">{label}</span>
+        <div className="mm-score-track">
+          <div className="mm-score-fill" style={{ width: `${pct}%`, background: col }} />
+        </div>
+        <span className="mm-score-val">{score}/{maxScore}</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mm-root">
+      {/* ── HEADER ── */}
+      <div className="mm-header">
+        <div className="mm-header-left">
+          <button className="rl-back-btn" onClick={onBack}>← BACK TO JOB ROLES</button>
+          <div className="mm-header-titles">
+            <div className="mm-header-eyebrow">ACTIVE REQUISITION · MATCHING MATRIX</div>
+            <div className="mm-header-role">{job?.title || 'Senior Data Engineer'}</div>
+            <div className="mm-header-sub">{job?.dept || ''}{job?.location ? ` · ${job.location}` : ''} · LIVE: AI Matching Phase</div>
+          </div>
+        </div>
+        <div className="mm-header-right">
+          <div className="mm-acceptance-box">
+            <div className="mm-acceptance-label">ACCEPTANCES PENDING</div>
+            <div className="mm-acceptance-count">{acceptedCount} candidate{acceptedCount !== 1 ? 's' : ''} accepted</div>
+          </div>
+          <div className="mm-filter-tabs">
+            {['ALL','accepted','not_responded'].map(f => (
+              <button key={f} className={`mm-filter-tab${filter===f?' active':''}`} onClick={() => setFilter(f)}>
+                {f === 'ALL' ? 'ALL' : f === 'accepted' ? 'ACCEPTED' : 'PENDING'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── BODY: grid + detail panel ── */}
+      <div className="mm-body">
+
+        {/* LEFT: candidate grid */}
+        <div className="mm-left">
+          <div className="mm-section-label">
+            THE MATCHING MATRIX
+            <span className="mm-section-sub"> · TOP MATCHING PROFILES · {sorted.length} candidates</span>
+          </div>
+
+          <div className="mm-grid">
+            {sorted.map(c => {
+              const isAccepted   = c.jobApplicationStatus === 'accepted'
+              const isPending    = c.jobApplicationStatus === 'not_responded'
+              const isSelected   = selectedCandidate?.id === c.id
+              const recColor     = getRecommendationColor(c.recommendationColor)
+              const rating       = getRatingFromScore(c.overallScorePercent)
+              return (
+                <div
+                  key={c.id}
+                  className={`mm-card${isAccepted?' mm-card--accepted':''}${isPending?' mm-card--pending':''}${isSelected?' mm-card--selected':''}`}
+                  style={getStatusStyle(c.jobApplicationStatus)}
+                  onClick={() => setSelectedCandidate(isSelected ? null : c)}
+                >
+                  {/* Status badge */}
+                  {isAccepted && <div className="mm-accepted-badge">✓ ACCEPTED</div>}
+                  {isPending  && <div className="mm-lock-icon">🔒</div>}
+
+                  {/* Avatar */}
+                  <div className="mm-avatar" style={{ borderColor: recColor }}>
+                    {c.initials}
+                  </div>
+
+                  {/* Name + score */}
+                  <div className="mm-card-name">
+                    {c.name}
+                    <span className="mm-card-rating" style={{ color: recColor }}> ({Math.round(c.overallScore * 10)}/{rating})</span>
+                  </div>
+                  <div className="mm-card-match">
+                    <span style={{ color: recColor }}>{c.overallScorePercent}% MATCH</span>
+                    <span className="mm-card-rec" style={{ color: recColor }}>[{c.recommendation.toUpperCase()}]</span>
+                  </div>
+
+                  {/* Mini radar */}
+                  <MiniRadar candidate={c} />
+
+                  {/* Org + exp */}
+                  <div className="mm-card-org">{c.currentOrganization.name}</div>
+                  <div className="mm-card-exp">{c.experience.relevantYears}yr relevant · {c.experience.totalYears}yr total</div>
+
+                  {isAccepted && (
+                    <button className="mm-reveal-btn" onClick={e => { e.stopPropagation(); setSelectedCandidate(c) }}>
+                      REVEAL &amp; UNDERWRITE
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Bottom panels: heatmap + volatility ── */}
+          <div className="mm-bottom-row">
+            <div className="mm-bottom-card mm-heatmap-panel">
+              <div className="mm-bottom-title">TALENT SUPPLY HEATMAP<br/><span>AA+ talent clusters</span></div>
+              <div className="mm-geo-dots">
+                {[
+                  { city:'London',     x:48, y:28 }, { city:'Bangalore',  x:72, y:58 },
+                  { city:'Berlin',     x:52, y:30 }, { city:'California', x:10, y:42 },
+                  { city:'Bengaluru', x:71, y:60 }, { city:'Bartana',    x:54, y:35 },
+                ].map(loc => (
+                  <div key={loc.city} className="mm-geo-dot" style={{ left:`${loc.x}%`, top:`${loc.y}%` }}>
+                    <span className="mm-geo-pulse"/>
+                    <span className="mm-geo-label">{loc.city}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mm-bottom-card mm-volatility-panel">
+              <div className="mm-bottom-title">VOLATILITY INDEX: KEY SKILLS<br/><span style={{color:'#22C55E'}}>(+14% HIGH DEMAND)</span></div>
+              <svg viewBox="0 0 120 50" className="mm-sparkline">
+                <polyline fill="none" stroke="var(--color-teal)" strokeWidth="1.5"
+                  points="0,40 15,32 28,36 38,20 50,25 62,15 75,18 88,10 100,14 120,8" />
+                <polyline fill="rgba(0,230,210,0.08)" stroke="none"
+                  points="0,40 15,32 28,36 38,20 50,25 62,15 75,18 88,10 100,14 120,8 120,50 0,50" />
+              </svg>
+              <div className="mm-skill-tags">
+                {(candidates[0]?.technicalSkills || []).slice(0,6).map(s => (
+                  <span key={s} className="mm-skill-tag">{s}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: inbound liquidity monitor / detail panel */}
+        <div className="mm-right">
+          <div className="mm-right-title">INBOUND LIQUIDITY MONITOR</div>
+
+          {/* Acceptances received */}
+          <div className="mm-accepted-list-label">
+            ACCEPTANCES RECEIVED<br/>
+            <span>({candidates.filter(c=>c.jobApplicationStatus==='accepted').length} unlocked)</span>
+          </div>
+          {candidates.filter(c => c.jobApplicationStatus === 'accepted').length === 0 ? (
+            <div className="mm-no-accepted">No acceptances yet — candidates shown as pending</div>
+          ) : (
+            <div className="mm-accepted-rows">
+              {candidates
+                .filter(c => c.jobApplicationStatus === 'accepted')
+                .sort((a,b) => b.overallScore - a.overallScore)
+                .map((c,i) => (
+                  <div key={c.id} className="mm-accepted-row" onClick={() => setSelectedCandidate(c)}>
+                    <span className="mm-acc-rank">{i+1}</span>
+                    <div className="mm-acc-avatar">{c.initials}</div>
+                    <span className="mm-acc-name">{c.name}</span>
+                    <div className="mm-acc-bar-wrap">
+                      <div className="mm-acc-bar" style={{ width:`${c.overallScorePercent}%` }}/>
+                    </div>
+                    <span className="mm-acc-pct">{c.overallScorePercent}%</span>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Score criteria legend */}
+          <div className="mm-criteria-legend">
+            <div className="mm-criteria-title">SCORE CRITERIA</div>
+            {scoreCriteria.map(c => (
+              <div key={c.key} className="mm-criteria-row">
+                <span className="mm-criteria-dot"/>
+                <span className="mm-criteria-label">{c.label}</span>
+                <span className="mm-criteria-max">/{c.maxScore}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Selected candidate detail */}
+          {selectedCandidate && (
+            <div className="mm-detail-panel">
+              <div className="mm-detail-header">
+                <div className="mm-detail-avatar"
+                  style={{ borderColor: getRecommendationColor(selectedCandidate.recommendationColor) }}>
+                  {selectedCandidate.initials}
+                </div>
+                <div>
+                  <div className="mm-detail-name">{selectedCandidate.name}</div>
+                  <div className="mm-detail-org">{selectedCandidate.currentOrganization.name}</div>
+                  <div className="mm-detail-exp">
+                    {selectedCandidate.experience.relevantYears}yr relevant · {selectedCandidate.experience.totalYears}yr total
+                  </div>
+                </div>
+              </div>
+              <div className="mm-detail-edu">{selectedCandidate.education.raw}</div>
+
+              <div className="mm-detail-scores">
+                {selectedCandidate.scoreBreakdown.map(s => (
+                  <ScoreBar key={s.criterion} label={s.label} score={s.score} maxScore={s.maxScore} />
+                ))}
+              </div>
+
+              <div className="mm-detail-overall">
+                <span>Overall</span>
+                <span style={{ color: getRecommendationColor(selectedCandidate.recommendationColor), fontWeight:700 }}>
+                  {selectedCandidate.overallScorePercent}% · {selectedCandidate.recommendation}
+                </span>
+              </div>
+
+              <div className="mm-detail-justification">{selectedCandidate.justification}</div>
+
+              <div className="mm-detail-probes-title">INTERVIEW PROBES</div>
+              {selectedCandidate.interviewProbes.map((p,i) => (
+                <div key={i} className="mm-detail-probe">
+                  <span className="mm-probe-num">{i+1}</span>
+                  <span>{p}</span>
+                </div>
+              ))}
+
+              <div className="mm-detail-skills">
+                {selectedCandidate.technicalSkills.slice(0,10).map(s => (
+                  <span key={s} className="rl-chip">{s}</span>
+                ))}
+              </div>
+
+              <div className="mm-detail-status"
+                style={{ color: selectedCandidate.jobApplicationStatus === 'accepted' ? '#22C55E' : 'var(--color-text-muted)' }}>
+                STATUS: {selectedCandidate.jobApplicationStatus.replace('_',' ').toUpperCase()}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -581,6 +880,7 @@ const LandingPage = ({ user, onLogout }) => {
   const [overlay, setOverlay]   = useState(false)
   const [jobs, setJobs]         = useState([])
   const [jobsLoading, setJobsLoading] = useState(true)
+  const [selectedJob, setSelectedJob] = useState(null)
 
   // Load jobs from API on mount
   useEffect(() => {
@@ -725,6 +1025,7 @@ const LandingPage = ({ user, onLogout }) => {
             {view === 'candidates' && 'CANDIDATE POOL'}
             {view === 'jobs'       && 'JOB ROLES'}
             {view === 'post-job'   && 'POST A JOB ROLE'}
+            {view === 'matches'    && 'MATCHING MATRIX'}
             {view === 'analytics'  && 'TALENT ANALYTICS'}
             {view === 'settings'   && 'SETTINGS'}
           </div>
@@ -768,7 +1069,7 @@ const LandingPage = ({ user, onLogout }) => {
                 </section>
                 <section className="rl-card">
                   <div className="rl-card-header"><div className="rl-card-title">ACTIVE JOB ROLES</div><div className="rl-card-sub">AI MATCH PIPELINE</div></div>
-                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.title} {...j}/>)}</div>
+                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.title} {...j} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
                 </section>
               </div>
               <div className="rl-two-col">
@@ -832,12 +1133,15 @@ const LandingPage = ({ user, onLogout }) => {
                 <div><div className="rl-page-title">OPEN JOB ROLES</div><div className="rl-page-sub">{jobs.length} active role{jobs.length !== 1 ? 's' : ''} · AI matching enabled</div></div>
                 <button className="rl-cta-btn" onClick={() => setView('post-job')}>+ POST ROLE</button>
               </div>
-              <div className="rl-jobs-full-grid">{jobs.map(j=><JobCard key={j.title} {...j}/>)}</div>
+              <div className="rl-jobs-full-grid">{jobs.map(j=><JobCard key={j.title} {...j} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
             </div>
           )}
 
           {/* POST JOB */}
           {view === 'post-job' && <PostJobView onBack={() => setView('jobs')} onJobPosted={handleJobPosted} />}
+
+          {/* MATCHING MATRIX */}
+          {view === 'matches' && <MatchingMatrixView job={selectedJob} onBack={() => setView('jobs')} />}
 
           {/* ANALYTICS */}
           {view === 'analytics' && (

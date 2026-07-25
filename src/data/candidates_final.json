@@ -1,0 +1,833 @@
+{
+  "meta": {
+    "matrixName": "Senior Data Engineering Auditor Matrix",
+    "sourceFile": "Senior_Data_Engineering_Auditor_Matrix.xlsx",
+    "generatedAt": "2026-07-25T00:00:00Z",
+    "version": 4,
+    "candidateCount": 6,
+    "scoreScale": "out of 10"
+  },
+  "scoreCriteria": [
+    {
+      "key": "pipeline",
+      "label": "Pipeline Architecture",
+      "maxScore": 10
+    },
+    {
+      "key": "scalability",
+      "label": "Scalability (TB/PB scale)",
+      "maxScore": 10
+    },
+    {
+      "key": "gov",
+      "label": "Data Governance",
+      "maxScore": 10
+    },
+    {
+      "key": "sovereignty",
+      "label": "Data Sovereignty",
+      "maxScore": 10
+    },
+    {
+      "key": "privacy",
+      "label": "Privacy Engineering",
+      "maxScore": 10
+    }
+  ],
+  "recommendationLegend": [
+    {
+      "value": "Suitable",
+      "color": "green"
+    },
+    {
+      "value": "Insufficient Data",
+      "color": "amber"
+    },
+    {
+      "value": "Not Suitable",
+      "color": "red"
+    }
+  ],
+  "candidates": [
+    {
+      "id": "1",
+      "slug": "sajil",
+      "name": "SAJIL",
+      "initials": "S",
+      "currentOrganization": {
+        "name": "Vertex Global Technologies",
+        "type": null,
+        "tenure": "Not in source - Present"
+      },
+      "experience": {
+        "totalYears": 8.0,
+        "totalYearsRaw": "8 years, 0 months",
+        "relevantYears": 8.0,
+        "relevantYearsRaw": "8 years, 0 months",
+        "relevantRatio": 1.0
+      },
+      "education": {
+        "degree": "B.E. in Computer Science",
+        "institution": "Bangalore University",
+        "raw": "B.E. in Computer Science, Bangalore University"
+      },
+      "technicalSkills": [
+        "Python",
+        "SQL",
+        "PySpark",
+        "Java",
+        "Bash",
+        "AWS",
+        "EKS",
+        "S3",
+        "Redshift",
+        "Snowflake",
+        "Databricks",
+        "BigQuery",
+        "Terraform",
+        "Airflow",
+        "Docker",
+        "Kubernetes",
+        "GitHub Actions"
+      ],
+      "skillCategories": {
+        "languages": [
+          "Python",
+          "SQL",
+          "Java",
+          "Bash"
+        ],
+        "cloudPlatforms": [
+          "AWS",
+          "EKS",
+          "S3",
+          "Redshift",
+          "BigQuery"
+        ],
+        "dataProcessing": [
+          "PySpark"
+        ],
+        "dataWarehouse": [
+          "Redshift",
+          "Snowflake",
+          "Databricks",
+          "BigQuery"
+        ],
+        "orchestrationInfra": [
+          "Terraform",
+          "Airflow",
+          "Docker",
+          "Kubernetes",
+          "GitHub Actions"
+        ]
+      },
+      "scores": {
+        "pipeline": 10.0,
+        "scalability": 8.0,
+        "gov": 8.0,
+        "sovereignty": 10.0,
+        "privacy": 10.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 10.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 10.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 10.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 9.2,
+      "overallScorePercent": 92.0,
+      "recommendation": "Suitable",
+      "recommendationColor": "green",
+      "flags": [
+        "top_candidate"
+      ],
+      "justification": "Signature Project:  EMEA Sovereign Data Cloud. Scores 5 in Sovereignty for 'Architecting' a Cellular framework for EU/Saudi residency. Pipeline score of 5 for event-driven workflows at 500M+ daily events. Privacy score of 5 for engineering 'Right to Erasure' workflows. Evidence of active ownership ('Architected', 'Engineered') throughout.",
+      "interviewProbes": [
+        "How did you design the 'Cellular' scalability framework to ensure zero cross-pollination between EU and Saudi data nodes?",
+        "Why did you choose an event-driven architecture for regulatory compliance?",
+        "How did you solve for referential integrity during 'Right to Erasure' automated deletions?"
+      ],
+      "sourceReference": "SAJIL - Senior Data Engineer",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    },
+    {
+      "id": "2",
+      "slug": "nibu",
+      "name": "NIBU",
+      "initials": "N",
+      "currentOrganization": {
+        "name": "NexGen Stream",
+        "type": "Early-Stage Fintech Startup",
+        "tenure": "May 2023 - Present"
+      },
+      "experience": {
+        "totalYears": 15.0,
+        "totalYearsRaw": "15 years, 0 months",
+        "relevantYears": 3.0,
+        "relevantYearsRaw": "3 years, 0 months",
+        "relevantRatio": 0.2
+      },
+      "education": {
+        "degree": "M.Tech in Computer Science & Engineering",
+        "institution": "IIT Madras",
+        "raw": "M.Tech in Computer Science & Engineering, IIT Madras"
+      },
+      "technicalSkills": [
+        "Python",
+        "SQL",
+        "Spark",
+        "Kafka",
+        "Snowflake",
+        "dbt",
+        "Airflow",
+        "Terraform",
+        "AWS",
+        "GCP",
+        "Kubernetes",
+        "Java",
+        "Hadoop"
+      ],
+      "skillCategories": {
+        "languages": [
+          "Python",
+          "SQL",
+          "Java"
+        ],
+        "cloudPlatforms": [
+          "AWS",
+          "GCP"
+        ],
+        "dataProcessing": [
+          "Spark",
+          "Kafka",
+          "dbt",
+          "Hadoop"
+        ],
+        "dataWarehouse": [
+          "Snowflake"
+        ],
+        "orchestrationInfra": [
+          "Airflow",
+          "Terraform",
+          "Kubernetes"
+        ]
+      },
+      "scores": {
+        "pipeline": 8.0,
+        "scalability": 6.0,
+        "gov": 6.0,
+        "sovereignty": 10.0,
+        "privacy": 8.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 10.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 8.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 7.6,
+      "overallScorePercent": 76.0,
+      "recommendation": "Suitable",
+      "recommendationColor": "green",
+      "flags": [],
+      "justification": "Signature Project:  Multi-Region EMEA Data Hub. Explicitly 'Architected' core pipeline. Sovereignty score of 5 for designing a 'Sovereign Cloud' using Terraform to isolate regional nodes for Saudi NDMO. Scalability capped at 3: mentions 300% surge but fails to specify PB/TB scale or distributed computing 'Battle Scars' like skew or partitioning.",
+      "interviewProbes": [
+        "How did you technically architect the physical isolation of data nodes for NDMO compliance using Terraform?",
+        "Why did you implement Row-Level Security in Snowflake instead of at the ingestion layer?",
+        "Can you describe the specific technical enforcement for your automated PII discovery scripts?"
+      ],
+      "sourceReference": "NIBU \u2013 Senior Data Engineer",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    },
+    {
+      "id": "3",
+      "slug": "varghese",
+      "name": "VARGHESE",
+      "initials": "V",
+      "currentOrganization": {
+        "name": "TrustCore Compliance",
+        "type": "Product",
+        "tenure": "May 2023 - Present"
+      },
+      "experience": {
+        "totalYears": 20.0,
+        "totalYearsRaw": "20 years, 0 months",
+        "relevantYears": 7.0,
+        "relevantYearsRaw": "7 years, 0 months",
+        "relevantRatio": 0.35
+      },
+      "education": {
+        "degree": "B.E. in Computer Science",
+        "institution": "Visvesvaraya Technological University (VTU)",
+        "raw": "B.E. in Computer Science, Visvesvaraya Technological University (VTU)"
+      },
+      "technicalSkills": [
+        "Python",
+        "SQL",
+        "Snowflake",
+        "Airflow",
+        "dbt",
+        "PySpark",
+        "Databricks",
+        "Kafka",
+        "Terraform",
+        "Ansible",
+        "Java",
+        "Selenium",
+        "PyTest",
+        "Jenkins",
+        "Docker"
+      ],
+      "skillCategories": {
+        "languages": [
+          "Python",
+          "SQL",
+          "Java"
+        ],
+        "dataProcessing": [
+          "dbt",
+          "PySpark",
+          "Kafka"
+        ],
+        "dataWarehouse": [
+          "Snowflake",
+          "Databricks"
+        ],
+        "orchestrationInfra": [
+          "Airflow",
+          "Terraform",
+          "Ansible",
+          "Jenkins",
+          "Docker"
+        ],
+        "testing": [
+          "Selenium",
+          "PyTest"
+        ]
+      },
+      "scores": {
+        "pipeline": 6.0,
+        "scalability": 6.0,
+        "gov": 8.0,
+        "sovereignty": 8.0,
+        "privacy": 10.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 10.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 7.6,
+      "overallScorePercent": 76.0,
+      "recommendation": "Suitable",
+      "recommendationColor": "green",
+      "flags": [],
+      "justification": "Signature Project:  Middle East Sovereign Data Residency Framework. Privacy score of 5 for 'Architecting' automated RTBF deletion scripts and privacy-by-design ingestion layers. Sovereignty score of 4 for designing Saudi NDMO nodes. Pipeline/Scalability capped at 3 as he is 'assisting' the Global Architect and lacks PB-scale metrics.",
+      "interviewProbes": [
+        "How did you ensure referential integrity across 500+ tables during automated 'Right to be Forgotten' deletions?",
+        "Why did you use Regular Expressions for PII discovery agents instead of built-in cloud native tools?",
+        "How do you maintain configuration parity across 'Sovereignty Nodes' using Ansible?"
+      ],
+      "sourceReference": "VARGHESE \u2013 Senior Data Engineer",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    },
+    {
+      "id": "4",
+      "slug": "shafi",
+      "name": "SHAFI",
+      "initials": "S",
+      "currentOrganization": {
+        "name": "ScaleUp Systems",
+        "type": "Cloud-First Product",
+        "tenure": "March 2020 - Present"
+      },
+      "experience": {
+        "totalYears": 14.0,
+        "totalYearsRaw": "14 years, 0 months",
+        "relevantYears": 14.0,
+        "relevantYearsRaw": "14 years, 0 months",
+        "relevantRatio": 1.0
+      },
+      "education": {
+        "degree": "B.Tech in Information Technology",
+        "institution": "National Institute of Technology (NIT)",
+        "raw": "B.Tech in Information Technology, National Institute of Technology (NIT)"
+      },
+      "technicalSkills": [
+        "Apache Spark",
+        "Kafka",
+        "Delta Lake",
+        "Hadoop",
+        "Hive",
+        "Flink",
+        "Beam",
+        "Python",
+        "Scala",
+        "Java",
+        "Go",
+        "SQL",
+        "GCP",
+        "AWS",
+        "Azure",
+        "Kubernetes",
+        "Docker",
+        "Terraform",
+        "Airflow",
+        "Dagster",
+        "Prometheus",
+        "Grafana",
+        "BigQuery",
+        "Snowflake",
+        "Redshift"
+      ],
+      "skillCategories": {
+        "languages": [
+          "Python",
+          "Scala",
+          "Java",
+          "Go",
+          "SQL"
+        ],
+        "cloudPlatforms": [
+          "GCP",
+          "AWS",
+          "Azure",
+          "BigQuery",
+          "Redshift"
+        ],
+        "dataProcessing": [
+          "Apache Spark",
+          "Kafka",
+          "Delta Lake",
+          "Hadoop",
+          "Hive",
+          "Flink",
+          "Beam"
+        ],
+        "dataWarehouse": [
+          "BigQuery",
+          "Snowflake",
+          "Redshift"
+        ],
+        "orchestrationInfra": [
+          "Kubernetes",
+          "Docker",
+          "Terraform",
+          "Airflow",
+          "Dagster"
+        ],
+        "observability": [
+          "Prometheus",
+          "Grafana"
+        ]
+      },
+      "scores": {
+        "pipeline": 10.0,
+        "scalability": 10.0,
+        "gov": 8.0,
+        "sovereignty": 6.0,
+        "privacy": 4.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 10.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 10.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 8.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 4.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 7.6,
+      "overallScorePercent": 76.0,
+      "recommendation": "Insufficient Data",
+      "recommendationColor": "amber",
+      "flags": [
+        "needs_more_evidence"
+      ],
+      "justification": "Signature Project:  Analytics Migration to GCP. Scores 5 in Scalability and Pipeline for managing 1.2 Petabytes of monthly event data and custom GKE autoscalers. Quantifiable 'Battle Scar': $15k/month cost reduction. Sovereignty is level 3 (mentions residency tagging but lacks sharding). Privacy capped at 2 (no technical enforcement workflows mentioned).",
+      "interviewProbes": [
+        "How did your 'Watermark' strategy handle late-arriving data in a 1.2 PB monthly pipeline?",
+        "Why did you build custom horizontal pod autoscalers instead of using native GKE scaling?",
+        "What technical mechanisms would you implement to move from 'tagging' for residency to 'physical geo-fencing'?"
+      ],
+      "sourceReference": "SHAFI \u2013 Senior Data Engineer",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    },
+    {
+      "id": "5",
+      "slug": "isaac",
+      "name": "ISAAC",
+      "initials": "I",
+      "currentOrganization": {
+        "name": "Bangalore Logic",
+        "type": "Product Hub",
+        "tenure": "Jan 2023 - Present"
+      },
+      "experience": {
+        "totalYears": 20.0,
+        "totalYearsRaw": "20 years, 0 months",
+        "relevantYears": 3.0,
+        "relevantYearsRaw": "3 years, 0 months",
+        "relevantRatio": 0.15
+      },
+      "education": {
+        "degree": "B.Tech in Computer Science",
+        "institution": "JNTU",
+        "raw": "B.Tech in Computer Science, JNTU"
+      },
+      "technicalSkills": [
+        "Python",
+        "SQL",
+        "Spark",
+        "Kafka",
+        "AWS Glue",
+        "Snowflake",
+        "Redshift",
+        "Airflow",
+        "Terraform",
+        "CloudFormation",
+        "S3",
+        "PySpark",
+        "AWS",
+        "JCL",
+        "COBOL",
+        "DB2"
+      ],
+      "skillCategories": {
+        "languages": [
+          "Python",
+          "SQL",
+          "COBOL"
+        ],
+        "cloudPlatforms": [
+          "AWS Glue",
+          "Redshift",
+          "CloudFormation",
+          "S3",
+          "AWS"
+        ],
+        "dataProcessing": [
+          "Spark",
+          "Kafka",
+          "PySpark"
+        ],
+        "dataWarehouse": [
+          "Snowflake",
+          "Redshift",
+          "DB2"
+        ],
+        "orchestrationInfra": [
+          "Airflow",
+          "Terraform"
+        ],
+        "legacy": [
+          "JCL",
+          "COBOL",
+          "DB2"
+        ]
+      },
+      "scores": {
+        "pipeline": 6.0,
+        "scalability": 6.0,
+        "gov": 4.0,
+        "sovereignty": 6.0,
+        "privacy": 8.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 4.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 6.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 8.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 6.0,
+      "overallScorePercent": 60.0,
+      "recommendation": "Insufficient Data",
+      "recommendationColor": "amber",
+      "flags": [
+        "needs_more_evidence"
+      ],
+      "justification": "Signature Project:  EMEA Scaling & AWS Data Lake. He is 'assisting' architects (caps scores at 3 per Lead/Member rule). Lacks specific data scale (TB/PB) evidence (Scale Check). Privacy score of 4 awarded for developing custom Python utilities for automated PII discovery and masking.",
+      "interviewProbes": [
+        "How did you technically manage cross-region replication latency while maintaining strict data residency for the German market?",
+        "Why did you choose CloudFormation over Terraform for this specific EMEA expansion?",
+        "How did your custom PII discovery utility handle data drift in legacy datasets?"
+      ],
+      "sourceReference": "ISAAC \u2013 Senior Data Engineer",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    },
+    {
+      "id": "6",
+      "slug": "ramesh",
+      "name": "RAMESH",
+      "initials": "R",
+      "currentOrganization": {
+        "name": "PixelPerfect UI",
+        "type": "Global Product Hub",
+        "tenure": "Jan 2022 - Present"
+      },
+      "experience": {
+        "totalYears": 20.0,
+        "totalYearsRaw": "20 years, 0 months",
+        "relevantYears": 0.0,
+        "relevantYearsRaw": "0 years, 0 months",
+        "relevantRatio": 0.0
+      },
+      "education": {
+        "degree": "B.E. in Computer Science",
+        "institution": "Bangalore University",
+        "raw": "B.E. in Computer Science, Bangalore University"
+      },
+      "technicalSkills": [
+        "JavaScript",
+        "TypeScript",
+        "React",
+        "Next.js",
+        "Redux",
+        "HTML5",
+        "CSS3",
+        "SASS",
+        "D3.js",
+        "Chart.js",
+        "Figma",
+        "Storybook",
+        "Jest",
+        "Cypress",
+        "Enzyme",
+        "Webpack",
+        "Vite",
+        "Docker",
+        "GraphQL",
+        "PHP"
+      ],
+      "skillCategories": {
+        "languages": [
+          "JavaScript",
+          "TypeScript",
+          "PHP"
+        ],
+        "orchestrationInfra": [
+          "Docker"
+        ],
+        "frontend": [
+          "React",
+          "Next.js",
+          "Redux",
+          "HTML5",
+          "CSS3",
+          "SASS",
+          "D3.js",
+          "Chart.js",
+          "Figma",
+          "Storybook",
+          "Enzyme",
+          "Webpack",
+          "Vite",
+          "GraphQL"
+        ],
+        "testing": [
+          "Jest",
+          "Cypress"
+        ]
+      },
+      "scores": {
+        "pipeline": 2.0,
+        "scalability": 2.0,
+        "gov": 2.0,
+        "sovereignty": 2.0,
+        "privacy": 2.0
+      },
+      "scoreBreakdown": [
+        {
+          "criterion": "pipeline",
+          "label": "Pipeline Architecture",
+          "score": 2.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "scalability",
+          "label": "Scalability (TB/PB scale)",
+          "score": 2.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "gov",
+          "label": "Data Governance",
+          "score": 2.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "sovereignty",
+          "label": "Data Sovereignty",
+          "score": 2.0,
+          "maxScore": 10
+        },
+        {
+          "criterion": "privacy",
+          "label": "Privacy Engineering",
+          "score": 2.0,
+          "maxScore": 10
+        }
+      ],
+      "overallScore": 2.0,
+      "overallScorePercent": 20.0,
+      "recommendation": "Not Suitable",
+      "recommendationColor": "red",
+      "flags": [
+        "profile_mismatch"
+      ],
+      "justification": "Candidate is a Frontend Architect. While experienced in UI/UX, he has no mentioned experience in Data Pipeline Architecture, Cloud Scalability (Data), or Data Sovereignty engineering. Complete profile mismatch based on the Level Mismatch rule (Operator/UI vs. Engineer).",
+      "interviewProbes": [
+        "How does your experience with GraphQL schemas translate to back-end data pipeline contracts?",
+        "Why would a frontend architect be the right fit for a Petabyte-scale data engineering role?",
+        "How did you handle user consent technically within the React component library?"
+      ],
+      "sourceReference": "RAMESH \u2013 Senior Data engg",
+      "reviewStatus": "not_reviewed",
+      "recruiterNotes": "",
+      "jobApplicationStatus": "not_responded"
+    }
+  ],
+  "jobApplicationStatusOptions": [
+    "accepted",
+    "rejected",
+    "not_responded"
+  ]
+}
