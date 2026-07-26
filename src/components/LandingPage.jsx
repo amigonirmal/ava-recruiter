@@ -65,66 +65,74 @@ const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches })
 
 // ─── Matching Matrix View ─────────────────────────────────────────────────────
 const MatchingMatrixView = ({ job, onBack, onClose }) => {
-  const candidates = CANDIDATES_DATA.candidates
+  const candidates   = CANDIDATES_DATA.candidates
   const scoreCriteria = CANDIDATES_DATA.scoreCriteria
   const [selectedCandidate, setSelectedCandidate] = useState(null)
-  const [filter, setFilter] = useState('ALL') // ALL | accepted | not_responded
+  const [filter, setFilter]                       = useState('ALL')
+  const [showCloseConfirm, setShowCloseConfirm]   = useState(false)
 
   const acceptedCount = candidates.filter(c => c.jobApplicationStatus === 'accepted').length
-
-  const filtered = filter === 'ALL'
-    ? candidates
-    : candidates.filter(c => c.jobApplicationStatus === filter)
-
-  // Sort: accepted first, then by overallScore desc
+  const filtered = filter === 'ALL' ? candidates : candidates.filter(c => c.jobApplicationStatus === filter)
   const sorted = [...filtered].sort((a, b) => {
     if (a.jobApplicationStatus === 'accepted' && b.jobApplicationStatus !== 'accepted') return -1
     if (b.jobApplicationStatus === 'accepted' && a.jobApplicationStatus !== 'accepted') return 1
     return b.overallScore - a.overallScore
   })
 
-  const getStatusStyle = (status) => {
-    if (status === 'accepted')      return { border: '1.5px solid #22C55E', boxShadow: '0 0 10px rgba(34,197,94,0.30)', opacity: 1 }
-    if (status === 'not_responded') return { border: '1.5px solid var(--color-black-border)', opacity: 0.55 }
-    if (status === 'rejected')      return { border: '1.5px solid #FF3B4E', opacity: 0.5 }
-    return {}
-  }
+  const REC_COLOR = { green: '#22C55E', amber: '#F59E0B', red: '#FF3B4E' }
+  const recColor = c => REC_COLOR[c.recommendationColor] || 'var(--color-teal)'
+  const rating   = pct => pct >= 90 ? 'AA+' : pct >= 80 ? 'AA' : pct >= 70 ? 'A+' : pct >= 60 ? 'A' : 'B'
 
-  const getRecommendationColor = (color) => ({
-    green: '#22C55E', amber: '#F59E0B', red: '#FF3B4E'
-  }[color] || 'var(--color-teal)')
-
-  const getRatingFromScore = (pct) => {
-    if (pct >= 90) return 'AA+'
-    if (pct >= 80) return 'AA'
-    if (pct >= 70) return 'A+'
-    if (pct >= 60) return 'A'
-    return 'B'
-  }
-
-  // Mini sparkline — draw score bars as tiny SVG path
-  const MiniRadar = ({ candidate }) => {
-    const scores = scoreCriteria.map(c => (candidate.scores[c.key] || 0) / 10)
-    const n = scores.length
-    const cx = 32, cy = 28, r = 20
-    const pts = scores.map((v, i) => {
-      const ang = (i / n) * Math.PI * 2 - Math.PI / 2
-      return [cx + r * v * Math.cos(ang), cy + r * v * Math.sin(ang)]
-    })
-    const poly = pts.map(p => p.join(',')).join(' ')
-    const axes = scores.map((_, i) => {
-      const ang = (i / n) * Math.PI * 2 - Math.PI / 2
-      return [cx + r * Math.cos(ang), cy + r * Math.sin(ang)]
-    })
+  /* ── Mini pentagon radar (enlarged, with axis labels) ── */
+  const MiniRadar = ({ candidate, size = 88 }) => {
+    const keys = scoreCriteria.map(c => c.key)
+    const vals = keys.map(k => (candidate.scores[k] || 0) / 10)
+    const n = vals.length, cx = size / 2, cy = size / 2, maxR = size * 0.38
+    const pt = (v, i) => {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2
+      return [cx + maxR * v * Math.cos(a), cy + maxR * v * Math.sin(a)]
+    }
+    const axisPt = i => { const a = (i/n)*Math.PI*2 - Math.PI/2; return [cx + maxR*Math.cos(a), cy + maxR*Math.sin(a)] }
+    const outerPts = vals.map((_,i) => axisPt(i))
+    const innerPts = vals.map((_,i) => { const a = (i/n)*Math.PI*2-Math.PI/2; return [cx+maxR*0.5*Math.cos(a), cy+maxR*0.5*Math.sin(a)] })
+    const dataPoly = vals.map((v,i) => pt(v,i)).map(p=>p.join(',')).join(' ')
+    const outerPoly = outerPts.map(p=>p.join(',')).join(' ')
+    const innerPoly = innerPts.map(p=>p.join(',')).join(' ')
+    const labels = ['PIPE','SCALE','GOV','SOV','PRIV']
     return (
-      <svg width="64" height="56" viewBox="0 0 64 56">
-        <polygon points={axes.map(p=>p.join(',')).join(' ')} fill="none" stroke="rgba(0,230,210,0.12)" strokeWidth="1"/>
-        <polygon points={poly} fill="rgba(0,230,210,0.18)" stroke="rgba(0,230,210,0.7)" strokeWidth="1.5"/>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <polygon points={outerPoly} fill="none" stroke="rgba(0,230,210,0.12)" strokeWidth="0.8"/>
+        <polygon points={innerPoly} fill="none" stroke="rgba(0,230,210,0.07)" strokeWidth="0.8"/>
+        {outerPts.map((p,i) => <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="rgba(0,230,210,0.08)" strokeWidth="0.8"/>)}
+        <polygon points={dataPoly} fill="rgba(0,230,210,0.15)" stroke="rgba(0,230,210,0.75)" strokeWidth="1.5"/>
+        {vals.map((v,i) => { const [x,y] = pt(v,i); return <circle key={i} cx={x} cy={y} r="2" fill="var(--color-teal)"/> })}
+        {labels.map((lbl,i) => {
+          const [x,y] = axisPt(i)
+          const dx = (x - cx) * 1.32, dy = (y - cy) * 1.32
+          return <text key={lbl} x={cx+dx} y={cy+dy+1.5} fontSize="4.8" fill="rgba(0,230,210,0.55)"
+            textAnchor="middle" dominantBaseline="middle" fontFamily="var(--font-brand)" letterSpacing="0.3">{lbl}</text>
+        })}
       </svg>
     )
   }
 
-  // Score bar row for detail panel
+  /* ── Score ring (SVG arc) for detail panel ── */
+  const ScoreRing = ({ pct, color, size = 72 }) => {
+    const r = (size - 8) / 2, circ = 2 * Math.PI * r
+    const dash = (pct / 100) * circ
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(0,230,210,0.08)" strokeWidth="6"/>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="6"
+          strokeDasharray={`${dash} ${circ}`} strokeDashoffset={circ * 0.25}
+          strokeLinecap="round"/>
+        <text x={size/2} y={size/2} textAnchor="middle" dominantBaseline="central"
+          fontSize="13" fontWeight="700" fill={color} fontFamily="var(--font-brand)">{pct}%</text>
+      </svg>
+    )
+  }
+
+  /* ── Score bar row for detail panel ── */
   const ScoreBar = ({ label, score, maxScore }) => {
     const pct = (score / maxScore) * 100
     const col = pct >= 80 ? '#22C55E' : pct >= 60 ? 'var(--color-teal)' : '#F59E0B'
@@ -132,33 +140,62 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
       <div className="mm-score-row">
         <span className="mm-score-label">{label}</span>
         <div className="mm-score-track">
-          <div className="mm-score-fill" style={{ width: `${pct}%`, background: col }} />
+          <div className="mm-score-fill" style={{ width:`${pct}%`, background: col }}/>
+          <div className="mm-score-glow" style={{ left:`${pct}%`, background: col }}/>
         </div>
-        <span className="mm-score-val">{score}/{maxScore}</span>
+        <span className="mm-score-val" style={{ color: col }}>{score}<span className="mm-score-max">/{maxScore}</span></span>
       </div>
     )
   }
 
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  /* ── Skill demand bars for volatility panel ── */
+  const topSkills = [...new Set(candidates.flatMap(c => c.technicalSkills))].slice(0, 6)
+  const skillDemand = { Python:92, SQL:88, Spark:79, Kafka:71, Terraform:65, Airflow:60 }
 
   return (
     <div className="mm-root">
-      {/* ── HEADER ── */}
-      <div className="mm-header">
-        <div className="mm-header-left">
-          <button className="rl-back-btn" onClick={onBack}>← BACK TO JOB ROLES</button>
-          <div className="mm-header-titles">
-            <div className="mm-header-eyebrow">ACTIVE REQUISITION · MATCHING MATRIX</div>
-            <div className="mm-header-role">{job?.title || 'Senior Data Engineer'}</div>
-            <div className="mm-header-sub">{job?.dept || ''}{job?.location ? ` · ${job.location}` : ''} · LIVE: AI Matching Phase</div>
+
+      {/* ══ BANNER HEADER ══════════════════════════════════════════ */}
+      <div className="mm-banner">
+        <div className="mm-banner-accent"/>
+        <div className="mm-banner-left">
+          <button className="mm-back-btn" onClick={onBack}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            BACK
+          </button>
+          <div className="mm-banner-titles">
+            <div className="mm-banner-eyebrow">
+              <span className="mm-live-dot"/>
+              ACTIVE REQUISITION · MATCHING MATRIX
+            </div>
+            <div className="mm-banner-role">{job?.title || 'Senior Data Engineer'}</div>
+            <div className="mm-banner-meta">
+              {job?.dept && <span className="mm-meta-chip">{job.dept}</span>}
+              {job?.location && <span className="mm-meta-chip">{job.location}</span>}
+              <span className="mm-meta-chip mm-meta-live">LIVE · AI MATCHING</span>
+            </div>
           </div>
         </div>
-        <div className="mm-header-right">
-          <div className="mm-acceptance-box">
-            <div className="mm-acceptance-label">ACCEPTANCES PENDING</div>
-            <div className="mm-acceptance-count">{acceptedCount} candidate{acceptedCount !== 1 ? 's' : ''} accepted</div>
+
+        <div className="mm-banner-right">
+          {/* Acceptance stat */}
+          <div className="mm-stat-pill">
+            <div className="mm-stat-pill-val">{acceptedCount}</div>
+            <div className="mm-stat-pill-lbl">ACCEPTED</div>
           </div>
-          <div className="mm-header-actions">
+          <div className="mm-stat-pill">
+            <div className="mm-stat-pill-val">{sorted.length}</div>
+            <div className="mm-stat-pill-lbl">CANDIDATES</div>
+          </div>
+          <div className="mm-stat-pill">
+            <div className="mm-stat-pill-val mm-stat-pill-val--teal">
+              {Math.round(candidates.reduce((s,c)=>s+c.overallScorePercent,0)/candidates.length)}%
+            </div>
+            <div className="mm-stat-pill-lbl">AVG MATCH</div>
+          </div>
+
+          {/* Filter + close */}
+          <div className="mm-banner-controls">
             <div className="mm-filter-tabs">
               {['ALL','accepted','not_responded'].map(f => (
                 <button key={f} className={`mm-filter-tab${filter===f?' active':''}`} onClick={() => setFilter(f)}>
@@ -174,66 +211,91 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
               <div className="mm-close-confirm">
                 <span>Close this role?</span>
                 <button className="mm-confirm-yes" onClick={() => onClose(job)}>YES, CLOSE</button>
-                <button className="mm-confirm-no"  onClick={() => setShowCloseConfirm(false)}>CANCEL</button>
+                <button className="mm-confirm-no" onClick={() => setShowCloseConfirm(false)}>CANCEL</button>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── BODY: grid + detail panel ── */}
+      {/* ══ BODY ══════════════════════════════════════════════════ */}
       <div className="mm-body">
 
-        {/* LEFT: candidate grid */}
+        {/* ── LEFT: candidate grid + bottom panels ── */}
         <div className="mm-left">
           <div className="mm-section-label">
             THE MATCHING MATRIX
-            <span className="mm-section-sub"> · TOP MATCHING PROFILES · {sorted.length} candidates</span>
+            <span className="mm-section-sub"> · TOP PROFILES · {sorted.length} candidates</span>
           </div>
 
+          {/* ── Candidate cards ── */}
           <div className="mm-grid">
-            {sorted.map(c => {
-              const isAccepted   = c.jobApplicationStatus === 'accepted'
-              const isPending    = c.jobApplicationStatus === 'not_responded'
-              const isSelected   = selectedCandidate?.id === c.id
-              const recColor     = getRecommendationColor(c.recommendationColor)
-              const rating       = getRatingFromScore(c.overallScorePercent)
+            {sorted.map((c, idx) => {
+              const isAccepted = c.jobApplicationStatus === 'accepted'
+              const isPending  = c.jobApplicationStatus === 'not_responded'
+              const isSelected = selectedCandidate?.id === c.id
+              const rc = recColor(c)
               return (
                 <div
                   key={c.id}
                   className={`mm-card${isAccepted?' mm-card--accepted':''}${isPending?' mm-card--pending':''}${isSelected?' mm-card--selected':''}`}
-                  style={getStatusStyle(c.jobApplicationStatus)}
                   onClick={() => setSelectedCandidate(isSelected ? null : c)}
                 >
-                  {/* Status badge */}
-                  {isAccepted && <div className="mm-accepted-badge">✓ ACCEPTED</div>}
-                  {isPending  && <div className="mm-lock-icon">🔒</div>}
+                  {/* Rank badge */}
+                  <div className="mm-card-rank">#{idx + 1}</div>
 
-                  {/* Avatar */}
-                  <div className="mm-avatar" style={{ borderColor: recColor }}>
-                    {c.initials}
+                  {/* Status top strip */}
+                  {isAccepted && <div className="mm-accepted-strip">✓ ACCEPTED</div>}
+
+                  {/* Top row: avatar + score ring */}
+                  <div className="mm-card-top">
+                    <div className="mm-avatar" style={{ borderColor: rc }}>
+                      {isPending && <span className="mm-avatar-lock">🔒</span>}
+                      <span className="mm-avatar-init">{c.initials}</span>
+                    </div>
+                    {/* Circular score arc */}
+                    <div className="mm-card-score-arc">
+                      <svg width="52" height="52" viewBox="0 0 52 52">
+                        <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(0,230,210,0.08)" strokeWidth="5"/>
+                        <circle cx="26" cy="26" r="21" fill="none" stroke={rc} strokeWidth="5"
+                          strokeDasharray={`${(c.overallScorePercent/100)*131.9} 131.9`}
+                          strokeDashoffset="33" strokeLinecap="round"/>
+                        <text x="26" y="27" textAnchor="middle" dominantBaseline="central"
+                          fontSize="9" fontWeight="700" fill={rc} fontFamily="var(--font-brand)">{c.overallScorePercent}%</text>
+                      </svg>
+                    </div>
                   </div>
 
-                  {/* Name + score */}
+                  {/* Name + rating */}
                   <div className="mm-card-name">
                     {c.name}
-                    <span className="mm-card-rating" style={{ color: recColor }}> ({Math.round(c.overallScore * 10)}/{rating})</span>
+                    <span className="mm-card-badge" style={{ background: `${rc}18`, color: rc, borderColor: `${rc}55` }}>
+                      {rating(c.overallScorePercent)}
+                    </span>
                   </div>
-                  <div className="mm-card-match">
-                    <span style={{ color: recColor }}>{c.overallScorePercent}% MATCH</span>
-                    <span className="mm-card-rec" style={{ color: recColor }}>[{c.recommendation.toUpperCase()}]</span>
-                  </div>
-
-                  {/* Mini radar */}
-                  <MiniRadar candidate={c} />
-
-                  {/* Org + exp */}
                   <div className="mm-card-org">{c.currentOrganization.name}</div>
-                  <div className="mm-card-exp">{c.experience.relevantYears}yr relevant · {c.experience.totalYears}yr total</div>
+                  <div className="mm-card-exp-row">
+                    <span>{c.experience.relevantYears}yr relevant</span>
+                    <span className="mm-card-rec-pill" style={{ background:`${rc}15`, color: rc }}>
+                      {c.recommendation}
+                    </span>
+                  </div>
+
+                  {/* Radar */}
+                  <div className="mm-card-radar">
+                    <MiniRadar candidate={c} size={88}/>
+                  </div>
+
+                  {/* Top 3 skills */}
+                  <div className="mm-card-skills">
+                    {c.technicalSkills.slice(0,3).map(s => (
+                      <span key={s} className="mm-card-skill-tag">{s}</span>
+                    ))}
+                  </div>
 
                   {isAccepted && (
                     <button className="mm-reveal-btn" onClick={e => { e.stopPropagation(); setSelectedCandidate(c) }}>
-                      REVEAL &amp; UNDERWRITE
+                      REVEAL &amp; UNDERWRITE →
                     </button>
                   )}
                 </div>
@@ -241,180 +303,187 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
             })}
           </div>
 
-          {/* ── Bottom panels: heatmap + volatility ── */}
+          {/* ── Bottom panels ── */}
           <div className="mm-bottom-row">
+            {/* World map */}
             <div className="mm-bottom-card mm-heatmap-panel">
-              <div className="mm-bottom-title">TALENT SUPPLY HEATMAP<span> · AA+ talent clusters</span></div>
-              {/* ── Inline SVG world map with glowing city dots ── */}
+              <div className="mm-bottom-title">
+                TALENT SUPPLY HEATMAP
+                <span className="mm-bottom-sub"> · AA+ clusters</span>
+              </div>
               <svg viewBox="0 0 360 160" className="mm-world-svg" preserveAspectRatio="xMidYMid meet">
-                {/* Continent fills — simplified polygons */}
-                {/* North America */}
-                <polygon className="mm-continent"
-                  points="18,28 52,24 70,30 80,50 72,68 58,78 44,80 28,70 16,54 14,40"/>
-                {/* South America */}
-                <polygon className="mm-continent"
-                  points="56,88 72,82 84,90 90,106 86,128 74,140 60,136 52,120 50,102"/>
-                {/* Europe */}
-                <polygon className="mm-continent"
-                  points="144,20 168,16 182,22 186,36 178,46 162,50 148,46 140,34"/>
-                {/* Africa */}
-                <polygon className="mm-continent"
-                  points="148,54 172,50 190,58 196,80 190,106 174,118 156,116 144,100 140,76 142,60"/>
-                {/* Asia (west to east) */}
-                <polygon className="mm-continent"
-                  points="186,18 230,14 274,16 300,24 310,38 304,56 280,64 244,60 212,54 190,44 184,30"/>
-                {/* South/SE Asia */}
-                <polygon className="mm-continent"
-                  points="224,58 262,54 282,68 280,84 262,90 238,86 220,74"/>
-                {/* Australia */}
-                <polygon className="mm-continent"
-                  points="278,98 308,94 322,100 326,116 314,128 290,130 274,120 272,108"/>
-                {/* Greenland */}
-                <polygon className="mm-continent"
-                  points="100,6 122,4 128,14 120,22 102,20 96,12"/>
-
-                {/* Grid lines — latitude/longitude */}
-                {[40,80,120,160,200,240,280,320].map(x => (
-                  <line key={x} x1={x} y1="0" x2={x} y2="160" className="mm-grid-line"/>
-                ))}
-                {[40,80,120].map(y => (
-                  <line key={y} x1="0" y1={y} x2="360" y2={y} className="mm-grid-line"/>
-                ))}
-
-                {/* City talent dots — lon/lat mapped to SVG viewBox 360×160 */}
-                {/* London:     0°E, 51°N  → x≈180, y≈37 */}
-                {/* Berlin:     13°E, 52°N → x≈187, y≈36 */}
-                {/* Bangalore:  77°E, 12°N → x≈218, y≈61 */}
-                {/* Bengaluru:  same as Bangalore, offset slightly */}
-                {/* California: 120°W,37°N → x≈60, y≈42 */}
-                {/* Bartana:    near Bangalore area */}
+                {[40,80,120,160,200,240,280,320].map(x=><line key={x} x1={x} y1="0" x2={x} y2="160" className="mm-grid-line"/>)}
+                {[40,80,120].map(y=><line key={y} x1="0" y1={y} x2="360" y2={y} className="mm-grid-line"/>)}
+                <polygon className="mm-continent" points="18,28 52,24 70,30 80,50 72,68 58,78 44,80 28,70 16,54 14,40"/>
+                <polygon className="mm-continent" points="56,88 72,82 84,90 90,106 86,128 74,140 60,136 52,120 50,102"/>
+                <polygon className="mm-continent" points="144,20 168,16 182,22 186,36 178,46 162,50 148,46 140,34"/>
+                <polygon className="mm-continent" points="148,54 172,50 190,58 196,80 190,106 174,118 156,116 144,100 140,76 142,60"/>
+                <polygon className="mm-continent" points="186,18 230,14 274,16 300,24 310,38 304,56 280,64 244,60 212,54 190,44 184,30"/>
+                <polygon className="mm-continent" points="224,58 262,54 282,68 280,84 262,90 238,86 220,74"/>
+                <polygon className="mm-continent" points="278,98 308,94 322,100 326,116 314,128 290,130 274,120 272,108"/>
+                <polygon className="mm-continent" points="100,6 122,4 128,14 120,22 102,20 96,12"/>
                 {[
-                  { city:'London',    cx:180, cy:37 },
-                  { city:'Berlin',    cx:188, cy:35 },
-                  { city:'Bangalore', cx:247, cy:63 },
-                  { city:'California',cx:58,  cy:42 },
-                  { city:'Bengaluru', cx:249, cy:65 },
+                  { city:'London',    cx:180, cy:37, count: 3 },
+                  { city:'Berlin',    cx:188, cy:35, count: 2 },
+                  { city:'Bangalore', cx:247, cy:63, count: 5 },
+                  { city:'California',cx:58,  cy:42, count: 4 },
+                  { city:'Bengaluru', cx:249, cy:65, count: 5 },
                 ].map(dot => (
                   <g key={dot.city}>
-                    <circle cx={dot.cx} cy={dot.cy} r="5" className="mm-dot-pulse-ring"/>
+                    <circle cx={dot.cx} cy={dot.cy} r={dot.count + 3} fill="rgba(0,230,210,0.08)" stroke="rgba(0,230,210,0.25)" strokeWidth="0.8"/>
                     <circle cx={dot.cx} cy={dot.cy} r="3" className="mm-dot-core"/>
-                    <text x={dot.cx} y={dot.cy - 6} className="mm-dot-label" textAnchor="middle">
-                      {dot.city}
-                    </text>
+                    <text x={dot.cx} y={dot.cy - 7} className="mm-dot-label" textAnchor="middle">{dot.city}</text>
                   </g>
                 ))}
               </svg>
             </div>
+
+            {/* Skill demand bars */}
             <div className="mm-bottom-card mm-volatility-panel">
-              <div className="mm-bottom-title">VOLATILITY INDEX: KEY SKILLS<br/><span style={{color:'#22C55E'}}>(+14% HIGH DEMAND)</span></div>
-              <svg viewBox="0 0 120 50" className="mm-sparkline">
-                <polyline fill="none" stroke="var(--color-teal)" strokeWidth="1.5"
-                  points="0,40 15,32 28,36 38,20 50,25 62,15 75,18 88,10 100,14 120,8" />
-                <polyline fill="rgba(0,230,210,0.08)" stroke="none"
-                  points="0,40 15,32 28,36 38,20 50,25 62,15 75,18 88,10 100,14 120,8 120,50 0,50" />
-              </svg>
-              <div className="mm-skill-tags">
-                {(candidates[0]?.technicalSkills || []).slice(0,6).map(s => (
-                  <span key={s} className="mm-skill-tag">{s}</span>
+              <div className="mm-bottom-title">
+                SKILL DEMAND INDEX
+                <span className="mm-bottom-sub mm-bottom-sub--green"> · +14% HIGH DEMAND</span>
+              </div>
+              <div className="mm-skill-bars">
+                {Object.entries(skillDemand).map(([skill, pct]) => (
+                  <div key={skill} className="mm-skill-bar-row">
+                    <span className="mm-skill-bar-label">{skill}</span>
+                    <div className="mm-skill-bar-track">
+                      <div className="mm-skill-bar-fill" style={{ width:`${pct}%` }}/>
+                    </div>
+                    <span className="mm-skill-bar-pct">{pct}%</span>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT: inbound liquidity monitor / detail panel */}
+        {/* ── RIGHT: intelligence panel ── */}
         <div className="mm-right">
-          <div className="mm-right-title">INBOUND LIQUIDITY MONITOR</div>
 
-          {/* Acceptances received */}
-          <div className="mm-accepted-list-label">
-            ACCEPTANCES RECEIVED<br/>
-            <span>({candidates.filter(c=>c.jobApplicationStatus==='accepted').length} unlocked)</span>
+          {/* Panel header */}
+          <div className="mm-right-header">
+            <div className="mm-right-title">INTELLIGENCE PANEL</div>
+            <div className="mm-right-sub">AVA · LIVE ANALYSIS</div>
           </div>
-          {candidates.filter(c => c.jobApplicationStatus === 'accepted').length === 0 ? (
-            <div className="mm-no-accepted">No acceptances yet — candidates shown as pending</div>
-          ) : (
-            <div className="mm-accepted-rows">
-              {candidates
-                .filter(c => c.jobApplicationStatus === 'accepted')
-                .sort((a,b) => b.overallScore - a.overallScore)
-                .map((c,i) => (
-                  <div key={c.id} className="mm-accepted-row" onClick={() => setSelectedCandidate(c)}>
-                    <span className="mm-acc-rank">{i+1}</span>
-                    <div className="mm-acc-avatar">{c.initials}</div>
-                    <span className="mm-acc-name">{c.name}</span>
-                    <div className="mm-acc-bar-wrap">
-                      <div className="mm-acc-bar" style={{ width:`${c.overallScorePercent}%` }}/>
-                    </div>
-                    <span className="mm-acc-pct">{c.overallScorePercent}%</span>
-                  </div>
-                ))}
+
+          {/* Acceptance leaderboard */}
+          <div className="mm-panel-section">
+            <div className="mm-panel-section-title">
+              ACCEPTANCES RECEIVED
+              <span className="mm-panel-count">{acceptedCount} UNLOCKED</span>
             </div>
-          )}
-
-          {/* Score criteria legend */}
-          <div className="mm-criteria-legend">
-            <div className="mm-criteria-title">SCORE CRITERIA</div>
-            {scoreCriteria.map(c => (
-              <div key={c.key} className="mm-criteria-row">
-                <span className="mm-criteria-dot"/>
-                <span className="mm-criteria-label">{c.label}</span>
-                <span className="mm-criteria-max">/{c.maxScore}</span>
+            {acceptedCount === 0 ? (
+              <div className="mm-no-accepted">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(0,230,210,0.3)" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                No acceptances yet
               </div>
-            ))}
+            ) : (
+              <div className="mm-accepted-rows">
+                {candidates.filter(c=>c.jobApplicationStatus==='accepted')
+                  .sort((a,b)=>b.overallScore-a.overallScore)
+                  .map((c,i) => (
+                    <div key={c.id} className="mm-accepted-row" onClick={() => setSelectedCandidate(c)}>
+                      <span className="mm-acc-rank">#{i+1}</span>
+                      <div className="mm-acc-avatar">{c.initials}</div>
+                      <div className="mm-acc-info">
+                        <span className="mm-acc-name">{c.name}</span>
+                        <div className="mm-acc-bar-wrap"><div className="mm-acc-bar" style={{ width:`${c.overallScorePercent}%` }}/></div>
+                      </div>
+                      <span className="mm-acc-pct">{c.overallScorePercent}%</span>
+                    </div>
+                  ))
+                }
+              </div>
+            )}
           </div>
 
-          {/* Selected candidate detail */}
-          {selectedCandidate && (
+          {/* Score criteria */}
+          <div className="mm-panel-section">
+            <div className="mm-panel-section-title">SCORE CRITERIA</div>
+            <div className="mm-criteria-list">
+              {scoreCriteria.map((c,i) => {
+                const colors = ['var(--color-teal)','#22C55E','#F59E0B','#3b82f6','#a855f7']
+                return (
+                  <div key={c.key} className="mm-criteria-row">
+                    <span className="mm-criteria-dot" style={{ background: colors[i] }}/>
+                    <span className="mm-criteria-label">{c.label}</span>
+                    <span className="mm-criteria-max">/{c.maxScore}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Selected candidate drawer */}
+          {selectedCandidate ? (
             <div className="mm-detail-panel">
+              <div className="mm-detail-close" onClick={() => setSelectedCandidate(null)}>✕ CLOSE</div>
+
+              {/* Header: ring + info */}
               <div className="mm-detail-header">
-                <div className="mm-detail-avatar"
-                  style={{ borderColor: getRecommendationColor(selectedCandidate.recommendationColor) }}>
-                  {selectedCandidate.initials}
-                </div>
-                <div>
+                <ScoreRing pct={selectedCandidate.overallScorePercent}
+                  color={recColor(selectedCandidate)} size={72}/>
+                <div className="mm-detail-info">
                   <div className="mm-detail-name">{selectedCandidate.name}</div>
+                  <div className="mm-detail-rec" style={{ color: recColor(selectedCandidate) }}>
+                    {selectedCandidate.recommendation} · {rating(selectedCandidate.overallScorePercent)}
+                  </div>
                   <div className="mm-detail-org">{selectedCandidate.currentOrganization.name}</div>
                   <div className="mm-detail-exp">
                     {selectedCandidate.experience.relevantYears}yr relevant · {selectedCandidate.experience.totalYears}yr total
                   </div>
                 </div>
               </div>
+
               <div className="mm-detail-edu">{selectedCandidate.education.raw}</div>
 
+              {/* Score breakdown */}
               <div className="mm-detail-scores">
                 {selectedCandidate.scoreBreakdown.map(s => (
-                  <ScoreBar key={s.criterion} label={s.label} score={s.score} maxScore={s.maxScore} />
+                  <ScoreBar key={s.criterion} label={s.label} score={s.score} maxScore={s.maxScore}/>
                 ))}
               </div>
 
-              <div className="mm-detail-overall">
-                <span>Overall</span>
-                <span style={{ color: getRecommendationColor(selectedCandidate.recommendationColor), fontWeight:700 }}>
-                  {selectedCandidate.overallScorePercent}% · {selectedCandidate.recommendation}
-                </span>
-              </div>
-
+              {/* Justification */}
+              <div className="mm-detail-section-title">AI JUSTIFICATION</div>
               <div className="mm-detail-justification">{selectedCandidate.justification}</div>
 
-              <div className="mm-detail-probes-title">INTERVIEW PROBES</div>
-              {selectedCandidate.interviewProbes.map((p,i) => (
-                <div key={i} className="mm-detail-probe">
-                  <span className="mm-probe-num">{i+1}</span>
-                  <span>{p}</span>
-                </div>
-              ))}
-
-              <div className="mm-detail-skills">
-                {selectedCandidate.technicalSkills.slice(0,10).map(s => (
-                  <span key={s} className="rl-chip">{s}</span>
+              {/* Interview probes */}
+              <div className="mm-detail-section-title">INTERVIEW PROBES</div>
+              <div className="mm-detail-probes">
+                {selectedCandidate.interviewProbes.map((p,i) => (
+                  <div key={i} className="mm-detail-probe">
+                    <span className="mm-probe-num">{i+1}</span>
+                    <span>{p}</span>
+                  </div>
                 ))}
               </div>
 
-              <div className="mm-detail-status"
-                style={{ color: selectedCandidate.jobApplicationStatus === 'accepted' ? '#22C55E' : 'var(--color-text-muted)' }}>
-                STATUS: {selectedCandidate.jobApplicationStatus.replace('_',' ').toUpperCase()}
+              {/* Skills */}
+              <div className="mm-detail-skills">
+                {selectedCandidate.technicalSkills.slice(0,12).map(s => (
+                  <span key={s} className="mm-detail-skill-tag">{s}</span>
+                ))}
               </div>
+
+              {/* Status */}
+              <div className="mm-detail-status-row"
+                style={{ borderColor: selectedCandidate.jobApplicationStatus === 'accepted' ? 'rgba(34,197,94,0.3)' : 'var(--color-black-border)' }}>
+                <span className="mm-status-dot"
+                  style={{ background: selectedCandidate.jobApplicationStatus === 'accepted' ? '#22C55E' : 'var(--color-text-muted)' }}/>
+                <span style={{ color: selectedCandidate.jobApplicationStatus === 'accepted' ? '#22C55E' : 'var(--color-text-muted)' }}>
+                  {selectedCandidate.jobApplicationStatus.replace('_',' ').toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="mm-panel-hint">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(0,230,210,0.25)" strokeWidth="1.5">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <span>Click a candidate card to view full profile</span>
             </div>
           )}
         </div>
