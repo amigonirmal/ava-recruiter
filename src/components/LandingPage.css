@@ -760,6 +760,86 @@
   border-color: var(--color-teal);
 }
 
+/* ── Open / Closed tab pills ──────────────────────────────────── */
+.rl-jobs-tabs {
+  display: flex;
+  gap: 0.2rem;
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 6px;
+  padding: 0.2rem;
+}
+.rl-jobs-tab {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-brand);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.rl-jobs-tab.active {
+  background: rgba(0,230,210,0.12);
+  color: var(--color-teal);
+}
+.rl-jobs-tab:hover:not(.active) { color: var(--color-text-secondary); }
+.rl-tab-badge {
+  background: var(--color-black-border);
+  border-radius: 8px;
+  font-size: 0.52rem;
+  padding: 0.05rem 0.35rem;
+  color: var(--color-text-muted);
+  min-width: 16px;
+  text-align: center;
+}
+.rl-jobs-tab.active .rl-tab-badge {
+  background: rgba(0,230,210,0.18);
+  color: var(--color-teal);
+}
+
+/* ── Closed job card ─────────────────────────────────────────── */
+.rl-job-card--closed {
+  opacity: 0.6;
+  cursor: default;
+}
+.rl-job-card--closed:hover { transform: none; }
+.rl-closed-badge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-black-border);
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+}
+.rl-closed-date {
+  font-size: 0.6rem;
+  color: var(--color-text-muted);
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-black-border);
+  width: 100%;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.rl-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  border: 1px dashed var(--color-black-border);
+  border-radius: 8px;
+}
+
 /* ── Activity feed ───────────────────────────────────────────── */
 .rl-activity-list {
   display: flex;
@@ -1945,6 +2025,110 @@
   background: rgba(0,230,210,0.1);
   border-color: var(--color-teal-dim);
   color: var(--color-teal);
+}
+
+/* ── Header actions row (filters + close button) ─────────────── */
+.mm-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* Close Role button */
+.mm-close-role-btn {
+  background: rgba(255, 59, 78, 0.08);
+  border: 1px solid rgba(255, 59, 78, 0.45);
+  color: #FF3B4E;
+  font-family: var(--font-brand);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0.32rem 0.85rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.mm-close-role-btn:hover {
+  background: rgba(255, 59, 78, 0.18);
+  border-color: #FF3B4E;
+}
+
+/* Inline confirmation */
+.mm-close-confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255,59,78,0.07);
+  border: 1px solid rgba(255,59,78,0.3);
+  border-radius: 5px;
+  padding: 0.3rem 0.65rem;
+}
+.mm-close-confirm span {
+  font-size: 0.6rem;
+  color: #FF3B4E;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.mm-confirm-yes {
+  background: #FF3B4E;
+  border: none;
+  color: #fff;
+  font-family: var(--font-brand);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mm-confirm-yes:hover { opacity: 0.85; }
+.mm-confirm-no {
+  background: transparent;
+  border: 1px solid var(--color-black-border);
+  color: var(--color-text-muted);
+  font-family: var(--font-brand);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.mm-confirm-no:hover { border-color: var(--color-text-secondary); }
+
+/* ── World map SVG ────────────────────────────────────────────── */
+.mm-world-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 0.3rem;
+}
+.mm-continent {
+  fill: rgba(0, 230, 210, 0.10);
+  stroke: rgba(0, 230, 210, 0.35);
+  stroke-width: 0.6;
+}
+.mm-grid-line {
+  stroke: rgba(0, 230, 210, 0.06);
+  stroke-width: 0.4;
+}
+.mm-dot-pulse-ring {
+  fill: rgba(0, 230, 210, 0.18);
+  stroke: rgba(0, 230, 210, 0.6);
+  stroke-width: 0.8;
+}
+.mm-dot-core {
+  fill: var(--color-teal);
+  filter: drop-shadow(0 0 3px rgba(0,230,210,0.9));
+}
+.mm-dot-label {
+  font-size: 5px;
+  fill: var(--color-text-secondary);
+  font-family: var(--font-brand);
+  letter-spacing: 0.04em;
 }
 
 /* ── Body layout: left grid + right panel ─────────────────────── */

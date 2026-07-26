@@ -64,7 +64,7 @@ const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches })
 }
 
 // ─── Matching Matrix View ─────────────────────────────────────────────────────
-const MatchingMatrixView = ({ job, onBack }) => {
+const MatchingMatrixView = ({ job, onBack, onClose }) => {
   const candidates = CANDIDATES_DATA.candidates
   const scoreCriteria = CANDIDATES_DATA.scoreCriteria
   const [selectedCandidate, setSelectedCandidate] = useState(null)
@@ -139,6 +139,8 @@ const MatchingMatrixView = ({ job, onBack }) => {
     )
   }
 
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+
   return (
     <div className="mm-root">
       {/* ── HEADER ── */}
@@ -156,12 +158,25 @@ const MatchingMatrixView = ({ job, onBack }) => {
             <div className="mm-acceptance-label">ACCEPTANCES PENDING</div>
             <div className="mm-acceptance-count">{acceptedCount} candidate{acceptedCount !== 1 ? 's' : ''} accepted</div>
           </div>
-          <div className="mm-filter-tabs">
-            {['ALL','accepted','not_responded'].map(f => (
-              <button key={f} className={`mm-filter-tab${filter===f?' active':''}`} onClick={() => setFilter(f)}>
-                {f === 'ALL' ? 'ALL' : f === 'accepted' ? 'ACCEPTED' : 'PENDING'}
+          <div className="mm-header-actions">
+            <div className="mm-filter-tabs">
+              {['ALL','accepted','not_responded'].map(f => (
+                <button key={f} className={`mm-filter-tab${filter===f?' active':''}`} onClick={() => setFilter(f)}>
+                  {f === 'ALL' ? 'ALL' : f === 'accepted' ? 'ACCEPTED' : 'PENDING'}
+                </button>
+              ))}
+            </div>
+            {!showCloseConfirm ? (
+              <button className="mm-close-role-btn" onClick={() => setShowCloseConfirm(true)}>
+                ✕ CLOSE ROLE
               </button>
-            ))}
+            ) : (
+              <div className="mm-close-confirm">
+                <span>Close this role?</span>
+                <button className="mm-confirm-yes" onClick={() => onClose(job)}>YES, CLOSE</button>
+                <button className="mm-confirm-no"  onClick={() => setShowCloseConfirm(false)}>CANCEL</button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -229,19 +244,66 @@ const MatchingMatrixView = ({ job, onBack }) => {
           {/* ── Bottom panels: heatmap + volatility ── */}
           <div className="mm-bottom-row">
             <div className="mm-bottom-card mm-heatmap-panel">
-              <div className="mm-bottom-title">TALENT SUPPLY HEATMAP<br/><span>AA+ talent clusters</span></div>
-              <div className="mm-geo-dots">
-                {[
-                  { city:'London',     x:48, y:28 }, { city:'Bangalore',  x:72, y:58 },
-                  { city:'Berlin',     x:52, y:30 }, { city:'California', x:10, y:42 },
-                  { city:'Bengaluru', x:71, y:60 }, { city:'Bartana',    x:54, y:35 },
-                ].map(loc => (
-                  <div key={loc.city} className="mm-geo-dot" style={{ left:`${loc.x}%`, top:`${loc.y}%` }}>
-                    <span className="mm-geo-pulse"/>
-                    <span className="mm-geo-label">{loc.city}</span>
-                  </div>
+              <div className="mm-bottom-title">TALENT SUPPLY HEATMAP<span> · AA+ talent clusters</span></div>
+              {/* ── Inline SVG world map with glowing city dots ── */}
+              <svg viewBox="0 0 360 160" className="mm-world-svg" preserveAspectRatio="xMidYMid meet">
+                {/* Continent fills — simplified polygons */}
+                {/* North America */}
+                <polygon className="mm-continent"
+                  points="18,28 52,24 70,30 80,50 72,68 58,78 44,80 28,70 16,54 14,40"/>
+                {/* South America */}
+                <polygon className="mm-continent"
+                  points="56,88 72,82 84,90 90,106 86,128 74,140 60,136 52,120 50,102"/>
+                {/* Europe */}
+                <polygon className="mm-continent"
+                  points="144,20 168,16 182,22 186,36 178,46 162,50 148,46 140,34"/>
+                {/* Africa */}
+                <polygon className="mm-continent"
+                  points="148,54 172,50 190,58 196,80 190,106 174,118 156,116 144,100 140,76 142,60"/>
+                {/* Asia (west to east) */}
+                <polygon className="mm-continent"
+                  points="186,18 230,14 274,16 300,24 310,38 304,56 280,64 244,60 212,54 190,44 184,30"/>
+                {/* South/SE Asia */}
+                <polygon className="mm-continent"
+                  points="224,58 262,54 282,68 280,84 262,90 238,86 220,74"/>
+                {/* Australia */}
+                <polygon className="mm-continent"
+                  points="278,98 308,94 322,100 326,116 314,128 290,130 274,120 272,108"/>
+                {/* Greenland */}
+                <polygon className="mm-continent"
+                  points="100,6 122,4 128,14 120,22 102,20 96,12"/>
+
+                {/* Grid lines — latitude/longitude */}
+                {[40,80,120,160,200,240,280,320].map(x => (
+                  <line key={x} x1={x} y1="0" x2={x} y2="160" className="mm-grid-line"/>
                 ))}
-              </div>
+                {[40,80,120].map(y => (
+                  <line key={y} x1="0" y1={y} x2="360" y2={y} className="mm-grid-line"/>
+                ))}
+
+                {/* City talent dots — lon/lat mapped to SVG viewBox 360×160 */}
+                {/* London:     0°E, 51°N  → x≈180, y≈37 */}
+                {/* Berlin:     13°E, 52°N → x≈187, y≈36 */}
+                {/* Bangalore:  77°E, 12°N → x≈218, y≈61 */}
+                {/* Bengaluru:  same as Bangalore, offset slightly */}
+                {/* California: 120°W,37°N → x≈60, y≈42 */}
+                {/* Bartana:    near Bangalore area */}
+                {[
+                  { city:'London',    cx:180, cy:37 },
+                  { city:'Berlin',    cx:188, cy:35 },
+                  { city:'Bangalore', cx:247, cy:63 },
+                  { city:'California',cx:58,  cy:42 },
+                  { city:'Bengaluru', cx:249, cy:65 },
+                ].map(dot => (
+                  <g key={dot.city}>
+                    <circle cx={dot.cx} cy={dot.cy} r="5" className="mm-dot-pulse-ring"/>
+                    <circle cx={dot.cx} cy={dot.cy} r="3" className="mm-dot-core"/>
+                    <text x={dot.cx} y={dot.cy - 6} className="mm-dot-label" textAnchor="middle">
+                      {dot.city}
+                    </text>
+                  </g>
+                ))}
+              </svg>
             </div>
             <div className="mm-bottom-card mm-volatility-panel">
               <div className="mm-bottom-title">VOLATILITY INDEX: KEY SKILLS<br/><span style={{color:'#22C55E'}}>(+14% HIGH DEMAND)</span></div>
@@ -881,6 +943,8 @@ const LandingPage = ({ user, onLogout }) => {
   const [jobs, setJobs]         = useState([])
   const [jobsLoading, setJobsLoading] = useState(true)
   const [selectedJob, setSelectedJob] = useState(null)
+  const [closedJobs, setClosedJobs]   = useState([])
+  const [jobsTab, setJobsTab]         = useState('open') // 'open' | 'closed'
 
   // Load jobs from API on mount
   useEffect(() => {
@@ -893,6 +957,14 @@ const LandingPage = ({ user, onLogout }) => {
   // Called by PostJobView after a successful POST /api/jobs
   const handleJobPosted = (newJob) => {
     setJobs(prev => [newJob, ...prev])
+  }
+
+  // Called by MatchingMatrixView when recruiter closes a role
+  const handleCloseJob = (job) => {
+    setJobs(prev => prev.filter(j => (j.id || j.title) !== (job.id || job.title)))
+    setClosedJobs(prev => [{ ...job, closedAt: new Date().toISOString() }, ...prev])
+    setView('jobs')
+    setJobsTab('closed')
   }
 
   const navItems = [
@@ -1130,10 +1202,64 @@ const LandingPage = ({ user, onLogout }) => {
           {view === 'jobs' && (
             <div className="rl-dashboard">
               <div className="rl-page-header">
-                <div><div className="rl-page-title">OPEN JOB ROLES</div><div className="rl-page-sub">{jobs.length} active role{jobs.length !== 1 ? 's' : ''} · AI matching enabled</div></div>
-                <button className="rl-cta-btn" onClick={() => setView('post-job')}>+ POST ROLE</button>
+                <div>
+                  <div className="rl-page-title">JOB ROLES</div>
+                  <div className="rl-page-sub">
+                    {jobsTab === 'open'
+                      ? `${jobs.length} active role${jobs.length !== 1 ? 's' : ''} · AI matching enabled`
+                      : `${closedJobs.length} closed role${closedJobs.length !== 1 ? 's' : ''}`}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
+                  {/* Open / Closed tab pills */}
+                  <div className="rl-jobs-tabs">
+                    <button className={`rl-jobs-tab${jobsTab==='open'?' active':''}`} onClick={() => setJobsTab('open')}>
+                      OPEN <span className="rl-tab-badge">{jobs.length}</span>
+                    </button>
+                    <button className={`rl-jobs-tab${jobsTab==='closed'?' active':''}`} onClick={() => setJobsTab('closed')}>
+                      CLOSED <span className="rl-tab-badge">{closedJobs.length}</span>
+                    </button>
+                  </div>
+                  {jobsTab === 'open' && (
+                    <button className="rl-cta-btn" onClick={() => setView('post-job')}>+ POST ROLE</button>
+                  )}
+                </div>
               </div>
-              <div className="rl-jobs-full-grid">{jobs.map(j=><JobCard key={j.title} {...j} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
+
+              {jobsTab === 'open' && (
+                <div className="rl-jobs-full-grid">
+                  {jobs.map(j => (
+                    <JobCard key={j.id || j.title} {...j}
+                      onReviewMatches={() => { setSelectedJob(j); setView('matches') }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {jobsTab === 'closed' && (
+                <div className="rl-jobs-full-grid">
+                  {closedJobs.length === 0 ? (
+                    <div className="rl-empty-state">No closed roles yet.</div>
+                  ) : closedJobs.map(j => (
+                    <div key={j.id || j.title} className="rl-job-card rl-job-card--closed">
+                      <div className="rl-job-header">
+                        <div>
+                          <div className="rl-job-title">{j.title}</div>
+                          <div className="rl-job-dept">{j.dept}</div>
+                        </div>
+                        <span className="rl-closed-badge">CLOSED</span>
+                      </div>
+                      <div className="rl-job-stats">
+                        <div className="rl-job-stat"><span>{j.applicants || 0}</span><label>Applicants</label></div>
+                        <div className="rl-job-stat"><span style={{color:'var(--color-text-muted)'}}>{j.matched || 0}</span><label>Matched</label></div>
+                      </div>
+                      <div className="rl-closed-date">
+                        Closed {j.closedAt ? new Date(j.closedAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : 'recently'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1141,7 +1267,7 @@ const LandingPage = ({ user, onLogout }) => {
           {view === 'post-job' && <PostJobView onBack={() => setView('jobs')} onJobPosted={handleJobPosted} />}
 
           {/* MATCHING MATRIX */}
-          {view === 'matches' && <MatchingMatrixView job={selectedJob} onBack={() => setView('jobs')} />}
+          {view === 'matches' && <MatchingMatrixView job={selectedJob} onBack={() => setView('jobs')} onClose={handleCloseJob} />}
 
           {/* ANALYTICS */}
           {view === 'analytics' && (
