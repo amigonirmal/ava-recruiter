@@ -57,6 +57,8 @@ if (GCS_BUCKET) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+// ── Jobs (disk-based — jobs.json is in a writable ephemeral layer via COPY) ───
 function readJobs() {
   try { return JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8')) } catch { return [] }
 }
@@ -67,51 +69,80 @@ function writeJobs(jobs) {
   console.log(`[jobs] wrote ${jobs.length} jobs to ${JOBS_FILE}`)
 }
 
-function readCandidates() {
-  try { return JSON.parse(fs.readFileSync(CANDS_FILE, 'utf8')) } catch { return { candidates: [] } }
-}
-
-function writeCandidates(data) {
-  fs.writeFileSync(CANDS_FILE, JSON.stringify(data, null, 2))
-  console.log(`[candidates] wrote to ${CANDS_FILE}`)
-}
-
 async function uploadToGcs(jobs) {
   if (!gcsBucket) return
   try {
-    const content = JSON.stringify(jobs, null, 2)
-    await gcsBucket.file(GCS_OBJECT).save(content, {
+    await gcsBucket.file(GCS_OBJECT).save(JSON.stringify(jobs, null, 2), {
       contentType: 'application/json',
       metadata: { cacheControl: 'no-cache' },
     })
     console.log(`[gcs] ✓ uploaded ${jobs.length} jobs → gs://${GCS_BUCKET}/${GCS_OBJECT}`)
   } catch (err) {
-    console.error(`[gcs] ✗ upload failed: ${err.message}`)
+    console.error(`[gcs] ✗ jobs upload failed: ${err.message}`)
     if (err.code) console.error(`[gcs]   HTTP code: ${err.code}`)
   }
 }
 
-async function uploadCandidatesToGcs(data) {
-  if (!gcsBucket) return
+// ── Candidates (GCS-first — read/write directly to GCS; fall back to disk) ────
+// Cloud Run has a read-only container filesystem for image layers.
+// We never try to write candidates back to the container disk.
+// In local dev (no GCS_BUCKET), we fall back to the local file.
+
+async function readCandidatesFromGcs() {
+  if (!gcsBucket) return null
+  try {
+    const file = gcsBucket.file(GCS_CANDS_OBJ)
+    const [exists] = await file.exists()
+    if (!exists) {
+      console.log('[gcs] candidates file not found in bucket — using local seed')
+      return null
+    }
+    const [content] = await file.download()
+    console.log(`[gcs] ✓ read candidates from gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+    return JSON.parse(content.toString('utf8'))
+  } catch (err) {
+    console.error(`[gcs] candidates read failed: ${err.message}`)
+    return null
+  }
+}
+
+function readCandidatesFromDisk() {
+  try { return JSON.parse(fs.readFileSync(CANDS_FILE, 'utf8')) } catch { return { candidates: [] } }
+}
+
+async function getCandidates() {
+  const gcsData = await readCandidatesFromGcs()
+  return gcsData ?? readCandidatesFromDisk()
+}
+
+async function saveCandidatesToGcs(data) {
+  if (!gcsBucket) {
+    // Local dev — write to disk instead
+    try {
+      fs.writeFileSync(CANDS_FILE, JSON.stringify(data, null, 2))
+      console.log(`[candidates] wrote to disk (local dev): ${CANDS_FILE}`)
+    } catch (err) {
+      console.error(`[candidates] disk write failed: ${err.message}`)
+    }
+    return
+  }
   try {
     await gcsBucket.file(GCS_CANDS_OBJ).save(JSON.stringify(data, null, 2), {
       contentType: 'application/json',
       metadata: { cacheControl: 'no-cache' },
     })
-    console.log(`[gcs] ✓ uploaded candidates → gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+    console.log(`[gcs] ✓ saved candidates → gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
   } catch (err) {
-    console.error(`[gcs] ✗ candidates upload failed: ${err.message}`)
+    console.error(`[gcs] ✗ candidates save failed: ${err.message}`)
   }
 }
 
 /**
- * Cold-start restore — pull jobs AND candidates from GCS so a fresh
- * container revision sees the latest data instead of the baked-in seed.
+ * Cold-start restore — only needed for jobs (disk-based).
+ * Candidates are read live from GCS on every request — no restore needed.
  */
 async function restoreFromGcs() {
   if (!gcsBucket) return
-
-  // Restore jobs
   try {
     const jobsFile = gcsBucket.file(GCS_OBJECT)
     const [jobsExist] = await jobsFile.exists()
@@ -124,21 +155,6 @@ async function restoreFromGcs() {
     }
   } catch (err) {
     console.error(`[gcs] jobs restore failed (using local seed): ${err.message}`)
-  }
-
-  // Restore candidates
-  try {
-    const candsFile = gcsBucket.file(GCS_CANDS_OBJ)
-    const [candsExist] = await candsFile.exists()
-    if (candsExist) {
-      const [content] = await candsFile.download()
-      writeCandidates(JSON.parse(content.toString('utf8')))
-      console.log(`[gcs] ✓ restored candidates from gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
-    } else {
-      console.log('[gcs] no candidates file in bucket yet — using local seed')
-    }
-  } catch (err) {
-    console.error(`[gcs] candidates restore failed (using local seed): ${err.message}`)
   }
 }
 
@@ -155,14 +171,22 @@ app.get('/healthz', (_req, res) => res.json({ status: 'ok' }))
 app.get('/api/jobs', (_req, res) => res.json(readJobs()))
 
 // GET /api/candidates
-// Always reads from disk (which was restored from GCS on cold-start).
-// This means editing candidates_final.json in GCS → restart container → live data.
-app.get('/api/candidates', (_req, res) => {
-  res.json(readCandidates())
+// Reads LIVE from GCS on every request (no disk cache).
+// In local dev (no GCS_BUCKET) falls back to src/data/candidates_final.json.
+// Edit gs://ava-storage-bucket/candidates/candidates_final.json → reflects immediately.
+app.get('/api/candidates', async (_req, res) => {
+  try {
+    const data = await getCandidates()
+    res.json(data)
+  } catch (err) {
+    console.error('[candidates] GET failed:', err.message)
+    res.status(500).json({ error: 'failed to load candidates' })
+  }
 })
 
 // PATCH /api/candidates/:id  — update a single candidate field at runtime
 // Body: { "jobApplicationStatus": "accepted" }  (any top-level field)
+// Reads from GCS, merges, writes back to GCS.
 app.patch('/api/candidates/:id', async (req, res) => {
   const { id } = req.params
   const updates = req.body
@@ -170,16 +194,20 @@ app.patch('/api/candidates/:id', async (req, res) => {
     return res.status(400).json({ error: 'body must be a JSON object of fields to update' })
   }
 
-  const data = readCandidates()
-  const idx  = (data.candidates || []).findIndex(c => c.id === id)
-  if (idx === -1) return res.status(404).json({ error: `candidate id "${id}" not found` })
+  try {
+    const data = await getCandidates()
+    const idx  = (data.candidates || []).findIndex(c => c.id === id)
+    if (idx === -1) return res.status(404).json({ error: `candidate id "${id}" not found` })
 
-  data.candidates[idx] = { ...data.candidates[idx], ...updates }
-  writeCandidates(data)
-  await uploadCandidatesToGcs(data)
+    data.candidates[idx] = { ...data.candidates[idx], ...updates }
+    await saveCandidatesToGcs(data)
 
-  console.log(`[candidates] patched ${id}:`, updates)
-  res.json(data.candidates[idx])
+    console.log(`[candidates] patched ${id}:`, updates)
+    res.json(data.candidates[idx])
+  } catch (err) {
+    console.error('[candidates] PATCH failed:', err.message)
+    res.status(500).json({ error: 'failed to update candidate' })
+  }
 })
 
 // POST /api/jobs
