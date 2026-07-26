@@ -707,28 +707,59 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
               const pct = (val / 10) * 100
               return (
                 <div key={c.key}>
-                  {/* Label row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'oklch(88% 0.02 195)', letterSpacing: '0.02em' }}>
+                  {/* Label + value row */}
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:'oklch(88% 0.02 195)', letterSpacing:'0.02em' }}>
                       {c.label}
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: c.color, minWidth: 32, textAlign: 'right' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:14, fontWeight:800, color:c.color, minWidth:32, textAlign:'right' }}>
                         {val.toFixed(1)}
                       </span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: c.color }}>{tag(val)}</span>
+                      <span style={{ fontSize:10, fontWeight:700, color:c.color }}>{tag(val)}</span>
                     </div>
                   </div>
 
-                  {/* Native range slider — styled via CSS class hcmt-slider */}
-                  <input
-                    type="range"
-                    className="hcmt-slider"
-                    min="0" max="10" step="0.5"
-                    value={val}
-                    onChange={e => setVal(c.key, parseFloat(e.target.value))}
-                    style={{ '--slider-color': c.color, '--slider-pct': `${pct}%` }}
-                  />
+                  {/* Custom slider: div track + transparent <input> on top */}
+                  <div style={{ position:'relative', height:18, display:'flex', alignItems:'center' }}>
+                    {/* Track background */}
+                    <div style={{
+                      position:'absolute', left:0, right:0,
+                      height:4, borderRadius:2,
+                      background:'oklch(26% 0.02 250)',
+                      pointerEvents:'none',
+                    }}/>
+                    {/* Filled portion */}
+                    <div style={{
+                      position:'absolute', left:0,
+                      width:`${pct}%`, height:4, borderRadius:2,
+                      background:c.color,
+                      transition:'width 0.05s',
+                      pointerEvents:'none',
+                    }}/>
+                    {/* Glowing thumb dot */}
+                    <div style={{
+                      position:'absolute',
+                      left:`calc(${pct}% - 7px)`,
+                      width:14, height:14, borderRadius:'50%',
+                      background:c.color,
+                      boxShadow:`0 0 8px ${c.color}`,
+                      border:'2px solid oklch(15% 0.025 250)',
+                      transition:'left 0.05s',
+                      pointerEvents:'none',
+                    }}/>
+                    {/* Invisible native range input — captures all interaction */}
+                    <input
+                      type="range"
+                      min="0" max="10" step="0.5"
+                      value={val}
+                      onChange={e => setVal(c.key, parseFloat(e.target.value))}
+                      style={{
+                        position:'absolute', left:0, right:0, width:'100%',
+                        height:'100%', opacity:0, cursor:'pointer', margin:0,
+                      }}
+                    />
+                  </div>
                 </div>
               )
             })}
