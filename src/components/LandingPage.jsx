@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import './LandingPage.css'
 import { fetchJobs, postJob, fetchCandidates } from '../services/jobsApi'
 import TalentHeatmap from './TalentHeatmap'
+import { rankCandidates } from '../services/rankingEngine'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
@@ -68,11 +69,15 @@ const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches })
 // Colours: dark navy oklch palette, amber talent dots, teal/green accents.
 const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [candidates, setCandidates]       = useState(candidatesData?.candidates    || [])
-  const [scoreCriteria]                   = useState(candidatesData?.scoreCriteria || [])
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [isClosed, setIsClosed]                   = useState(false)
   const [loading, setLoading]                     = useState(!candidatesData)
   const [showHCMT, setShowHCMT]                   = useState(false)
+
+  // JD weights — set via HCMT sliders; default = equal weighting
+  const [jdWeights, setJdWeights] = useState(
+    Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, 2]))  // equal weight 2/10 each
+  )
 
   // Fetch live candidate data from the API every time the matrix opens
   useEffect(() => {
@@ -82,14 +87,20 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
       .catch(err  => { console.error('fetchCandidates:', err); setLoading(false) })
   }, [])
 
+  // ── Live ranking — recomputes instantly on slider or candidates change ──────
+  const rankResult = useMemo(() => rankCandidates({
+    jobId:      job?.id || 'unknown',
+    jdWeights,
+    candidates,
+    missingMode: 'exclude',
+  }), [jdWeights, candidates, job?.id])
+
+  const rankedList = rankResult.ranked_candidates
+
   // ── helpers ──
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
   const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true })
-
-  const acceptedCandidates = candidates.filter(c => c.jobApplicationStatus === 'accepted')
-  const pendingCandidates  = candidates.filter(c => c.jobApplicationStatus === 'not_responded')
-  const acceptedCount      = acceptedCandidates.length
 
   // Card visual style by status
   // accepted  → green border + glow
@@ -128,33 +139,6 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
     return pts.join(' ')
   }
 
-  // Rating
-  const rating = pct => pct >= 90 ? 'AA+' : pct >= 80 ? 'AA' : pct >= 70 ? 'A+' : pct >= 60 ? 'A' : 'B'
-
-  // Pentagon radar for monitor panel
-  const cx = 100, cy = 90
-  const AXES = [-90, -18, 54, 126, 198]
-  const toPt = (i, r) => { const a = AXES[i] * Math.PI / 180; return `${(cx + r * Math.cos(a)).toFixed(0)},${(cy + r * Math.sin(a)).toFixed(0)}` }
-  const poolR    = [78, 62, 55, 22, 45]
-  const targetR  = [60, 48, 40, 44, 40]
-  const radarPool   = poolR.map((r,i)   => toPt(i,r)).join(' ')
-  const radarTarget = targetR.map((r,i) => toPt(i,r)).join(' ')
-
-  // Score bars for detail drawer
-  const ScoreBar = ({ label, score, maxScore }) => {
-    const pct = (score / maxScore) * 100
-    const col = pct >= 80 ? 'oklch(70% 0.17 145)' : pct >= 60 ? 'oklch(68% 0.18 195)' : 'oklch(72% 0.15 80)'
-    return (
-      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-        <span style={{ fontSize:9, color:'oklch(62% 0.02 250)', width:110, flexShrink:0 }}>{label}</span>
-        <div style={{ flex:1, height:4, background:'oklch(22% 0.03 250)', borderRadius:2, overflow:'hidden' }}>
-          <div style={{ width:`${pct}%`, height:'100%', background:col, borderRadius:2 }}/>
-        </div>
-        <span style={{ fontSize:9, fontWeight:800, color:col, width:28, textAlign:'right' }}>{score}/{maxScore}</span>
-      </div>
-    )
-  }
-
   const liveLine  = isClosed ? 'CLOSED: Position Filled' : 'LIVE: Underwriting Phase'
   const liveColor = isClosed ? 'oklch(65% 0.02 250)' : 'oklch(70% 0.17 145)'
 
@@ -163,9 +147,10 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
     <HCMTView
       titleSuffix={(job?.title || 'ROLE').toUpperCase()}
       jobTitle={(job?.title || 'Senior Data Engineer').toUpperCase()}
+      initialWeights={jdWeights}
       onBack={() => setShowHCMT(false)}
       actionLabel="SAVE & RETURN TO MATRIX"
-      onAction={() => setShowHCMT(false)}
+      onAction={(savedWeights) => { setJdWeights(savedWeights); setShowHCMT(false) }}
     />
   )
 
@@ -278,39 +263,54 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             )}
           </div>
 
-          {/* CARD GRID — 6 columns */}
+          {/* CARD GRID — ranked order, 6 columns */}
           <div className="mmc-grid">
-            {candidates.map((c, idx) => {
+            {rankedList.map((rc, idx) => {
+              const c  = rc._candidate
               const st = cardStyle(c)
               const isSelected = selectedCandidate?.id === c.id
               const seed = idx * 3
-              // neon teal glow on selected; green ambient on accepted; nothing on grey
               const boxShadow = isSelected
                 ? '0 0 0 2px #00e6d2, 0 0 18px #00e6d2, 0 0 36px rgba(0,230,210,0.45)'
                 : st.baseShadow
+              // Score colour: green ≥70, amber ≥45, red below
+              const scoreCol = rc.match_percentage >= 70
+                ? 'oklch(70% 0.17 145)'
+                : rc.match_percentage >= 45
+                  ? 'oklch(75% 0.15 80)'
+                  : 'oklch(65% 0.18 25)'
               return (
                 <div
                   key={c.id}
                   className="mmc-card"
-                  style={{
-                    border: st.border,
-                    boxShadow,
-                    opacity: st.opacity,
-                    transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
-                  }}
+                  style={{ border: st.border, boxShadow, opacity: st.opacity, transition:'box-shadow 0.2s ease, opacity 0.2s ease' }}
                   onClick={() => setSelectedCandidate(isSelected ? null : c)}
                 >
-                  {/* Avatar row */}
+                  {/* Avatar + rank badge row */}
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-                    <div style={{
-                      width:30, height:30, borderRadius:'50%',
-                      border:`1.5px solid ${st.ringColor}`,
-                      background:'oklch(22% 0.02 250)',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:12, fontWeight:800,
-                      color: st.isGreen ? 'oklch(88% 0.03 195)' : 'oklch(55% 0.02 250)',
-                    }}>
-                      {c.initials}
+                    <div style={{ position:'relative' }}>
+                      <div style={{
+                        width:30, height:30, borderRadius:'50%',
+                        border:`1.5px solid ${st.ringColor}`,
+                        background:'oklch(22% 0.02 250)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:12, fontWeight:800,
+                        color: st.isGreen ? 'oklch(88% 0.03 195)' : 'oklch(55% 0.02 250)',
+                      }}>
+                        {c.initials}
+                      </div>
+                      {/* Rank badge */}
+                      <div style={{
+                        position:'absolute', bottom:-4, right:-4,
+                        width:14, height:14, borderRadius:'50%',
+                        background: rc.rank === 1 ? 'oklch(72% 0.15 80)' : 'oklch(24% 0.03 250)',
+                        border:`1px solid ${rc.rank === 1 ? 'oklch(72% 0.15 80)' : 'oklch(45% 0.04 250)'}`,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:7, fontWeight:800,
+                        color: rc.rank === 1 ? 'oklch(14% 0.02 250)' : 'oklch(72% 0.02 250)',
+                      }}>
+                        #{rc.rank}
+                      </div>
                     </div>
                     {/* status dot */}
                     <div style={{
@@ -320,22 +320,24 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
                     }}/>
                   </div>
 
-                  {/* Name — always shown */}
-                  <div>
-                    <div style={{ fontSize:9.5, fontWeight:800, color: st.nameColor, lineHeight:1.25 }}>
+                  {/* Name */}
+                  <div style={{ marginTop:4 }}>
+                    <div style={{ fontSize:9.5, fontWeight:800, color:st.nameColor, lineHeight:1.25 }}>
                       {c.name}
                     </div>
-                    <div style={{ fontSize:8, color: st.chartColor, fontWeight:700, marginTop:1 }}>
-                      {c.overallScorePercent}% · {rating(c.overallScorePercent)}
+                    {/* Live weighted match score */}
+                    <div style={{ fontSize:9, fontWeight:800, color:scoreCol, marginTop:2 }}>
+                      {rc.match_percentage.toFixed(1)}% MATCH
                     </div>
+                    {rc.data_completeness !== 'complete' && (
+                      <div style={{ fontSize:7, color:'oklch(72% 0.15 80)', marginTop:1, lineHeight:1.3 }}>
+                        ⚠ {rc.data_completeness}
+                      </div>
+                    )}
                   </div>
 
                   {/* Status badge */}
-                  <div style={{
-                    fontSize:7, fontWeight:800, letterSpacing:'0.07em',
-                    color: st.isGreen ? 'oklch(70% 0.17 145)' : 'oklch(44% 0.03 250)',
-                    textTransform:'uppercase',
-                  }}>
+                  <div style={{ fontSize:7, fontWeight:800, letterSpacing:'0.07em', color: st.isGreen ? 'oklch(70% 0.17 145)' : 'oklch(44% 0.03 250)', textTransform:'uppercase' }}>
                     {st.isGreen ? '● ACCEPTED' : '○ PENDING'}
                   </div>
 
@@ -404,125 +406,268 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             THE INBOUND LIQUIDITY MONITOR
           </div>
 
-          {/* Acceptances pending */}
+          {/* ── LIVE RANKING LEADERBOARD ── */}
           <div className="mmc-panel">
-            <div style={{ fontSize:10, fontWeight:800, color:'oklch(85% 0.03 195)' }}>ACCEPTANCES PENDING</div>
-            <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8 }}>
-              ({pendingCandidates.length} ACTIVE LEADS AWAITING OPT-IN)
+            <div style={{ fontSize:10, fontWeight:800, color:'oklch(85% 0.03 195)', marginBottom:4 }}>
+              LIVE RANKING LEADERBOARD
             </div>
-            <div style={{ display:'flex', gap:4, marginBottom:8 }}>
-              {String(pendingCandidates.length).padStart(5,'0').split('').map((d,i) => (
-                <div key={i} style={{
-                  flex:1, textAlign:'center', fontSize:15, fontWeight:800,
-                  color:'oklch(92% 0.03 195)',
-                  background:'oklch(20% 0.03 250)',
-                  border:'1px solid oklch(45% 0.16 195 / 0.4)',
-                  borderRadius:3, padding:'5px 0',
-                }}>{d}</div>
-              ))}
+            <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8, letterSpacing:'0.04em' }}>
+              WEIGHTED MATCH · {rankedList.length} CANDIDATES
             </div>
-            <div style={{
-              height:6, borderRadius:3,
-              background:'linear-gradient(90deg, oklch(72% 0.15 195) 60%, oklch(75% 0.15 80) 60%)',
-              boxShadow:'0 0 8px oklch(60% 0.2 195 / 0.5)',
-            }}/>
-          </div>
 
-          {/* Acceptances received — pool */}
-          <div className="mmc-panel" style={{ flex:1, display:'flex', flexDirection:'column' }}>
-            <div style={{ fontSize:10, fontWeight:800, color:'oklch(85% 0.03 195)' }}>ACCEPTANCES RECEIVED</div>
-            <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8 }}>(THE ACTIVE POOL)</div>
-            <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, color:'oklch(55% 0.02 250)', marginBottom:6 }}>
-              <span>UNLOCKED PROFILE</span><span>MATCH CONFIDENCE</span>
+            {/* Column headers */}
+            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:8, color:'oklch(50% 0.02 250)',
+              letterSpacing:'0.06em', marginBottom:6, paddingBottom:4,
+              borderBottom:'1px solid oklch(28% 0.03 250)' }}>
+              <span style={{ width:14 }}>#</span>
+              <span style={{ flex:1 }}>CANDIDATE</span>
+              <span style={{ width:46, textAlign:'right' }}>MATCH</span>
             </div>
-            {acceptedCount === 0 ? (
-              <div style={{ fontSize:9, color:'oklch(52% 0.02 250)', fontStyle:'italic', paddingBottom:8 }}>
-                No acceptances yet — candidates shown as pending
-              </div>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-                {acceptedCandidates.slice(0,5).map((c,i) => (
-                  <div key={c.id} style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}
-                    onClick={() => setSelectedCandidate(c)}>
-                    <span style={{ fontSize:9, color:'oklch(58% 0.02 250)', width:8 }}>{i+1}</span>
-                    <div style={{ width:16, height:16, borderRadius:'50%', background:'oklch(26% 0.02 250)', border:'1px solid oklch(50% 0.1 195 / 0.4)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:7, color:'oklch(75% 0.15 195)', fontWeight:800, flexShrink:0 }}>
-                      {c.initials}
+
+            {/* Ranked rows */}
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              {rankedList.map((rc, idx) => {
+                const isSelected = selectedCandidate?.id === rc._candidate.id
+                const isAccepted = rc._candidate.jobApplicationStatus === 'accepted'
+                const scoreCol = rc.match_percentage >= 70
+                  ? 'oklch(70% 0.17 145)'
+                  : rc.match_percentage >= 45
+                    ? 'oklch(75% 0.15 80)'
+                    : 'oklch(65% 0.18 25)'
+                const barW = Math.max(2, rc.match_percentage)
+                return (
+                  <div key={rc.candidate_id}
+                    style={{
+                      display:'flex', alignItems:'center', gap:6,
+                      padding:'4px 6px', borderRadius:3, cursor:'pointer',
+                      background: isSelected ? 'oklch(22% 0.04 195 / 0.5)' : 'transparent',
+                      border: isSelected ? '1px solid oklch(45% 0.16 195 / 0.5)' : '1px solid transparent',
+                      transition:'background 0.15s',
+                    }}
+                    onClick={() => setSelectedCandidate(isSelected ? null : rc._candidate)}
+                  >
+                    {/* Rank number */}
+                    <span style={{
+                      width:14, fontSize:9, fontWeight:800, textAlign:'center', flexShrink:0,
+                      color: rc.rank === 1 ? 'oklch(72% 0.15 80)' : 'oklch(50% 0.02 250)',
+                    }}>
+                      {rc.rank}
+                    </span>
+
+                    {/* Avatar */}
+                    <div style={{
+                      width:18, height:18, borderRadius:'50%', flexShrink:0,
+                      background:'oklch(22% 0.03 250)',
+                      border:`1px solid ${isAccepted ? 'oklch(55% 0.17 145 / 0.7)' : 'oklch(35% 0.03 250)'}`,
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:7, fontWeight:800,
+                      color: isAccepted ? 'oklch(80% 0.1 145)' : 'oklch(50% 0.02 250)',
+                    }}>
+                      {rc._candidate.initials}
                     </div>
-                    <span style={{ fontSize:9, fontWeight:700, color:'oklch(88% 0.03 195)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
-                    <div style={{ width:40, height:4, borderRadius:2, background:'oklch(26% 0.02 250)', overflow:'hidden' }}>
-                      <div style={{ width:`${c.overallScorePercent}%`, height:'100%', background:'oklch(70% 0.17 145)' }}/>
+
+                    {/* Name + bar */}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{
+                        fontSize:9, fontWeight:700, lineHeight:1.2,
+                        color: isAccepted ? 'oklch(88% 0.03 195)' : 'oklch(58% 0.02 250)',
+                        whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                      }}>
+                        {rc._candidate.name}
+                      </div>
+                      {/* Match bar */}
+                      <div style={{ height:3, background:'oklch(22% 0.02 250)', borderRadius:2, marginTop:2, overflow:'hidden' }}>
+                        <div style={{
+                          width:`${barW}%`, height:'100%', borderRadius:2,
+                          background: scoreCol,
+                          transition:'width 0.25s ease',
+                        }}/>
+                      </div>
                     </div>
-                    <span style={{ fontSize:9, fontWeight:800, color:'oklch(72% 0.17 145)' }}>{c.overallScorePercent}%</span>
+
+                    {/* Match % */}
+                    <span style={{ fontSize:9, fontWeight:800, color:scoreCol, width:46, textAlign:'right', flexShrink:0 }}>
+                      {rc.match_percentage.toFixed(1)}%
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Pentagon radar — Active Pool vs Target */}
-            <div style={{ marginTop:12, display:'flex', justifyContent:'space-between', fontSize:8 }}>
-              <span style={{ color:'oklch(72% 0.17 145)', fontWeight:700 }}>Active Pool</span>
-              <span style={{ color:'oklch(72% 0.15 80)', fontWeight:700 }}>Target Asset Shape</span>
-            </div>
-            <div style={{ flex:1, minHeight:150, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg viewBox="0 0 200 180" width="100%" height="100%" style={{ maxHeight:180 }}>
-                {/* Outer + inner pentagon grid */}
-                <polygon points="100,15 180,68 150,165 50,165 20,68" fill="none" stroke="oklch(35% 0.04 250)" strokeWidth="1"/>
-                <polygon points="100,50 145,85 128,133 72,133 55,85" fill="none" stroke="oklch(35% 0.04 250)" strokeWidth="1"/>
-                {/* Axis lines */}
-                {[[100,90,100,15],[100,90,180,68],[100,90,150,165],[100,90,50,165],[100,90,20,68]].map(([x1,y1,x2,y2],i)=>(
-                  <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="oklch(35% 0.04 250)" strokeWidth="1"/>
-                ))}
-                {/* Active pool shape */}
-                <polygon points={radarPool} fill="oklch(68% 0.17 145 / 0.3)" stroke="oklch(70% 0.17 145)" strokeWidth="2" strokeLinejoin="round"/>
-                {/* Target shape */}
-                <polygon points={radarTarget} fill="oklch(72% 0.15 80 / 0.12)" stroke="oklch(72% 0.15 80 / 0.75)" strokeWidth="1.5" strokeLinejoin="round"/>
-                {/* Labels */}
-                {[['Perf Max',100,10],['Comp Min',190,66],['Perf Max',152,178],['Comp Min',46,178],['Comp Min',8,66]].map(([lbl,x,y])=>(
-                  <text key={lbl+x} x={x} y={y} textAnchor="middle" fontSize="7" fill="oklch(70% 0.02 250)" fontFamily="'JetBrains Mono',monospace">{lbl}</text>
-                ))}
-              </svg>
+                )
+              })}
             </div>
           </div>
 
-          {/* Selected candidate detail drawer */}
-          {selectedCandidate && (
-            <div className="mmc-panel" style={{ fontSize:10 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                <span style={{ fontWeight:800, color:'oklch(90% 0.05 195)', fontSize:11 }}>{selectedCandidate.name}</span>
-                <span style={{ cursor:'pointer', color:'oklch(60% 0.02 250)', fontSize:10 }}
-                  onClick={() => setSelectedCandidate(null)}>✕</span>
-              </div>
-              <div style={{ fontSize:9, color:'oklch(65% 0.17 145)', marginBottom:8 }}>
-                {selectedCandidate.currentOrganization.name} · {selectedCandidate.experience.relevantYears}yr relevant
-              </div>
-              <div style={{ marginBottom:8 }}>
-                {selectedCandidate.scoreBreakdown.map(s => (
-                  <ScoreBar key={s.criterion} label={s.label} score={s.score} maxScore={s.maxScore}/>
-                ))}
-              </div>
-              <div style={{ fontSize:8.5, color:'oklch(60% 0.02 250)', lineHeight:1.5, marginBottom:8,
-                borderLeft:'2px solid oklch(45% 0.16 195 / 0.4)', paddingLeft:6 }}>
-                {selectedCandidate.justification}
-              </div>
-              <div style={{ fontSize:8.5, fontWeight:800, color:'oklch(72% 0.15 195)', marginBottom:4, letterSpacing:'0.06em' }}>
-                INTERVIEW PROBES
-              </div>
-              {selectedCandidate.interviewProbes.map((p,i) => (
-                <div key={i} style={{ display:'flex', gap:6, marginBottom:4 }}>
-                  <span style={{ color:'oklch(70% 0.17 145)', fontWeight:800, flexShrink:0 }}>{i+1}.</span>
-                  <span style={{ fontSize:8.5, color:'oklch(70% 0.02 250)', lineHeight:1.45 }}>{p}</span>
-                </div>
-              ))}
-              <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:6 }}>
-                {selectedCandidate.technicalSkills.slice(0,8).map(s => (
-                  <span key={s} style={{
-                    fontSize:8, background:'oklch(20% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.4)',
-                    borderRadius:3, padding:'2px 5px', color:'oklch(65% 0.14 195)',
-                  }}>{s}</span>
-                ))}
-              </div>
+          {/* ── WEIGHT SUMMARY ── */}
+          <div className="mmc-panel" style={{ fontSize:9 }}>
+            <div style={{ fontSize:10, fontWeight:800, color:'oklch(85% 0.03 195)', marginBottom:6 }}>
+              ACTIVE JD WEIGHTS
             </div>
-          )}
+            {HCMT_CRITERIA.map(c => {
+              const raw = jdWeights[c.key] ?? 0
+              const normW = rankResult.weights_used[c.key] ?? 0
+              return (
+                <div key={c.key} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
+                  <span style={{ fontSize:8, color:'oklch(55% 0.02 250)', width:52, flexShrink:0,
+                    whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {c.short}
+                  </span>
+                  <div style={{ flex:1, height:3, background:'oklch(22% 0.02 250)', borderRadius:2, overflow:'hidden' }}>
+                    <div style={{ width:`${(raw/10)*100}%`, height:'100%', background:c.color,
+                      transition:'width 0.25s ease', borderRadius:2 }}/>
+                  </div>
+                  <span style={{ fontSize:8, fontWeight:800, color:c.color, width:28, textAlign:'right' }}>
+                    {(normW*100).toFixed(0)}%
+                  </span>
+                </div>
+              )
+            })}
+            <div style={{ fontSize:8, color:'oklch(50% 0.02 250)', marginTop:6, letterSpacing:'0.04em',
+              borderTop:'1px solid oklch(28% 0.03 250)', paddingTop:5 }}>
+              Normalised weights · adjust via ✎ EDIT JD
+            </div>
+          </div>
+
+          {/* ── SELECTED CANDIDATE DETAIL DRAWER ── */}
+          {selectedCandidate && (() => {
+            // Find the ranked result for this candidate
+            const rc = rankedList.find(r => r.candidate_id === selectedCandidate.id)
+            return (
+              <div className="mmc-panel" style={{ fontSize:10 }}>
+                {/* Header */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                  <div>
+                    <span style={{ fontWeight:800, color:'oklch(90% 0.05 195)', fontSize:11 }}>
+                      {selectedCandidate.name}
+                    </span>
+                    {rc && (
+                      <span style={{
+                        marginLeft:6, fontSize:9, fontWeight:800,
+                        color: rc.rank === 1 ? 'oklch(72% 0.15 80)' : 'oklch(72% 0.15 195)',
+                      }}>
+                        #{rc.rank}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ cursor:'pointer', color:'oklch(60% 0.02 250)', fontSize:10 }}
+                    onClick={() => setSelectedCandidate(null)}>✕</span>
+                </div>
+
+                {/* Org + experience */}
+                <div style={{ fontSize:9, color:'oklch(65% 0.17 145)', marginBottom:8 }}>
+                  {selectedCandidate.currentOrganization?.name || '—'}
+                  {selectedCandidate.experience?.relevantYears
+                    ? ` · ${selectedCandidate.experience.relevantYears}yr relevant`
+                    : ''}
+                </div>
+
+                {/* Live weighted match % */}
+                {rc && (
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10,
+                    padding:'6px 8px', background:'oklch(20% 0.03 250)', borderRadius:3,
+                    border:'1px solid oklch(45% 0.16 195 / 0.3)' }}>
+                    <div>
+                      <div style={{ fontSize:8, color:'oklch(55% 0.02 250)', letterSpacing:'0.06em' }}>LIVE MATCH</div>
+                      <div style={{ fontSize:16, fontWeight:800,
+                        color: rc.match_percentage >= 70
+                          ? 'oklch(70% 0.17 145)'
+                          : rc.match_percentage >= 45 ? 'oklch(75% 0.15 80)' : 'oklch(65% 0.18 25)',
+                      }}>
+                        {rc.match_percentage.toFixed(1)}%
+                      </div>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ height:5, background:'oklch(26% 0.02 250)', borderRadius:3, overflow:'hidden' }}>
+                        <div style={{
+                          width:`${rc.match_percentage}%`, height:'100%', borderRadius:3,
+                          background: rc.match_percentage >= 70
+                            ? 'oklch(70% 0.17 145)'
+                            : rc.match_percentage >= 45 ? 'oklch(75% 0.15 80)' : 'oklch(65% 0.18 25)',
+                          transition:'width 0.25s ease',
+                        }}/>
+                      </div>
+                      {rc.data_completeness !== 'complete' && (
+                        <div style={{ fontSize:7, color:'oklch(72% 0.15 80)', marginTop:2 }}>
+                          ⚠ {rc.data_completeness}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Per-criterion live breakdown */}
+                {rc && (
+                  <div style={{ marginBottom:10 }}>
+                    <div style={{ fontSize:8.5, fontWeight:800, color:'oklch(72% 0.15 195)',
+                      marginBottom:5, letterSpacing:'0.06em' }}>
+                      CRITERION BREAKDOWN
+                    </div>
+                    {rc.breakdown.map(b => {
+                      const scoreCol = b.contribution_pct >= 16
+                        ? 'oklch(70% 0.17 145)'
+                        : b.contribution_pct >= 8 ? 'oklch(75% 0.15 80)' : 'oklch(65% 0.18 25)'
+                      return (
+                        <div key={b.parameter} style={{ marginBottom:5 }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
+                            <span style={{ fontSize:8, color:'oklch(62% 0.02 250)' }}>{b.parameter}</span>
+                            <span style={{ fontSize:8, fontWeight:800, color:scoreCol }}>
+                              {b.candidate_score != null ? `${b.candidate_score}/10` : '—'}
+                            </span>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <div style={{ flex:1, height:3, background:'oklch(22% 0.03 250)', borderRadius:2, overflow:'hidden' }}>
+                              <div style={{
+                                width: b.candidate_score != null ? `${(b.candidate_score/10)*100}%` : '0%',
+                                height:'100%', borderRadius:2, background:scoreCol,
+                                transition:'width 0.25s ease',
+                              }}/>
+                            </div>
+                            <span style={{ fontSize:7.5, color:'oklch(50% 0.02 250)', width:38, textAlign:'right', flexShrink:0 }}>
+                              wt {b.effective_weight_pct ?? b.jd_weight_pct}%
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Justification */}
+                {selectedCandidate.justification && (
+                  <div style={{ fontSize:8.5, color:'oklch(60% 0.02 250)', lineHeight:1.5, marginBottom:8,
+                    borderLeft:'2px solid oklch(45% 0.16 195 / 0.4)', paddingLeft:6 }}>
+                    {selectedCandidate.justification}
+                  </div>
+                )}
+
+                {/* Interview probes */}
+                {selectedCandidate.interviewProbes?.length > 0 && (
+                  <>
+                    <div style={{ fontSize:8.5, fontWeight:800, color:'oklch(72% 0.15 195)',
+                      marginBottom:4, letterSpacing:'0.06em' }}>
+                      INTERVIEW PROBES
+                    </div>
+                    {selectedCandidate.interviewProbes.map((p,i) => (
+                      <div key={i} style={{ display:'flex', gap:6, marginBottom:4 }}>
+                        <span style={{ color:'oklch(70% 0.17 145)', fontWeight:800, flexShrink:0 }}>{i+1}.</span>
+                        <span style={{ fontSize:8.5, color:'oklch(70% 0.02 250)', lineHeight:1.45 }}>{p}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {/* Tech skills */}
+                {selectedCandidate.technicalSkills?.length > 0 && (
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginTop:6 }}>
+                    {selectedCandidate.technicalSkills.slice(0,8).map(s => (
+                      <span key={s} style={{
+                        fontSize:8, background:'oklch(20% 0.03 250)',
+                        border:'1px solid oklch(45% 0.16 195 / 0.4)',
+                        borderRadius:3, padding:'2px 5px', color:'oklch(65% 0.14 195)',
+                      }}>{s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
       </div>
     </div>
@@ -602,13 +747,14 @@ const JDVisualView = ({ file, onPost, onBack }) => {
 //   onBack       () => void
 //   actionLabel  string for the primary CTA (default "SAVE CHANGES")
 //   onAction     () => void  (called when CTA is pressed)
-const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHANGES', onAction }) => {
+const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHANGES', onAction, initialWeights }) => {
   const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
 
-  // ── Live slider state — one value (0–10) per criterion ────────────────
-  const [sliderVals, setSliderVals] = useState(
-    Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, c.key === 'privacy' ? 2 : c.key === 'sovereignty' ? 10 : c.key === 'pipeline' ? 9 : 6]))
-  )
+  // ── Live slider state — seeded from initialWeights if provided ────────
+  const [sliderVals, setSliderVals] = useState(() => {
+    if (initialWeights) return { ...initialWeights }
+    return Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, c.key === 'privacy' ? 2 : c.key === 'sovereignty' ? 10 : c.key === 'pipeline' ? 9 : 6]))
+  })
   const setVal = (key, v) => setSliderVals(prev => ({ ...prev, [key]: v }))
 
   // pct for radar (0-100)
@@ -851,7 +997,7 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
             {HCMT_CRITERIA.length} COMPETENCY VECTORS ACTIVE — RADAR UPDATING LIVE
           </span>
         </div>
-        <button className="rl-cta-btn" onClick={onAction} style={{ fontFamily: APP_FONT }}>
+        <button className="rl-cta-btn" onClick={() => onAction?.(sliderVals)} style={{ fontFamily: APP_FONT }}>
           {actionLabel}
         </button>
       </div>
