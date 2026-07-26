@@ -729,19 +729,6 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
                     onChange={e => setVal(c.key, parseFloat(e.target.value))}
                     style={{ '--slider-color': c.color, '--slider-pct': `${pct}%` }}
                   />
-
-                  {/* Visual track (mirrors slider position) */}
-                  <div style={{ position: 'relative', height: 4, borderRadius: 2, background: 'oklch(26% 0.02 250)', marginTop: 4 }}>
-                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, borderRadius: 2, background: c.color, transition: 'width 0.1s' }}/>
-                    <div style={{
-                      position: 'absolute', top: '50%', left: `${pct}%`,
-                      width: 12, height: 12, borderRadius: '50%',
-                      background: c.color,
-                      boxShadow: `0 0 8px ${c.color}`,
-                      transform: 'translate(-50%,-50%)',
-                      transition: 'left 0.1s',
-                    }}/>
-                  </div>
                 </div>
               )
             })}
