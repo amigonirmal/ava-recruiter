@@ -3584,3 +3584,86 @@
 .cvp-step-check { font-size: 0.7rem; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════════════════════════════
+   HCMT SLIDER — hcmt-slider class
+   Native <input type="range"> styled to match the terminal theme.
+   Uses CSS custom properties set inline:
+     --slider-color   the per-criterion accent colour
+     --slider-pct     filled-track width as a percentage string
+═══════════════════════════════════════════════════════════════ */
+
+.hcmt-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;          /* hit area */
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── Webkit (Chrome, Edge, Safari) ── */
+.hcmt-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--slider-color, #00e6d2) 0%,
+    var(--slider-color, #00e6d2) var(--slider-pct, 50%),
+    oklch(26% 0.02 250) var(--slider-pct, 50%),
+    oklch(26% 0.02 250) 100%
+  );
+}
+
+.hcmt-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--slider-color, #00e6d2);
+  box-shadow: 0 0 8px var(--slider-color, #00e6d2);
+  border: 2px solid oklch(13% 0.025 250);
+  margin-top: -5.5px;   /* vertically centre on track */
+  transition: box-shadow 0.15s;
+}
+.hcmt-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 14px var(--slider-color, #00e6d2);
+}
+
+/* ── Firefox ── */
+.hcmt-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: oklch(26% 0.02 250);
+}
+.hcmt-slider::-moz-range-progress {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--slider-color, #00e6d2);
+}
+.hcmt-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--slider-color, #00e6d2);
+  box-shadow: 0 0 8px var(--slider-color, #00e6d2);
+  border: 2px solid oklch(13% 0.025 250);
+  transition: box-shadow 0.15s;
+}
+.hcmt-slider::-moz-range-thumb:hover {
+  box-shadow: 0 0 14px var(--slider-color, #00e6d2);
+}
+
+/* Focus ring — keyboard accessible */
+.hcmt-slider:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--slider-color, #00e6d2);
+  outline-offset: 2px;
+}
+.hcmt-slider:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--slider-color, #00e6d2);
+  outline-offset: 2px;
+}

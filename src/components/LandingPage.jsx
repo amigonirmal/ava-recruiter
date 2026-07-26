@@ -72,6 +72,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [isClosed, setIsClosed]                   = useState(false)
   const [loading, setLoading]                     = useState(!candidatesData)
+  const [showHCMT, setShowHCMT]                   = useState(false)
 
   // Fetch live candidate data from the API every time the matrix opens
   useEffect(() => {
@@ -157,6 +158,17 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const liveLine  = isClosed ? 'CLOSED: Position Filled' : 'LIVE: Underwriting Phase'
   const liveColor = isClosed ? 'oklch(65% 0.02 250)' : 'oklch(70% 0.17 145)'
 
+  // Show full HCMT edit page when requested
+  if (showHCMT) return (
+    <HCMTView
+      titleSuffix={(job?.title || 'ROLE').toUpperCase()}
+      jobTitle={(job?.title || 'Senior Data Engineer').toUpperCase()}
+      onBack={() => setShowHCMT(false)}
+      actionLabel="SAVE & RETURN TO MATRIX"
+      onAction={() => setShowHCMT(false)}
+    />
+  )
+
   return (
     <div className="mmc" style={{
       fontFamily: "'JetBrains Mono', 'Satoshi', ui-monospace, monospace",
@@ -206,7 +218,15 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             </div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {/* EDIT JD button — opens HCMTView */}
+          <button
+            className="mm-back-btn-chrome"
+            style={{ color:'oklch(75% 0.15 80)', borderColor:'oklch(55% 0.12 80 / 0.6)', letterSpacing:'0.07em' }}
+            onClick={() => setShowHCMT(true)}
+          >
+            ✎ EDIT JD
+          </button>
           {/* filter tabs */}
           <div className="mmc-tabs">
             {['All','Accepted','Pending'].map(t => (
@@ -510,89 +530,97 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
 }
 
 // ─── Human Capital Market Terminal (HCMT) ─────────────────────────────────────
-// Uses the app brand font (Satoshi) throughout — matching the left navigation.
 const APP_FONT = "var(--font-brand)"
 
-// Radar — 5-axis pentagon matching the reference exactly
-const HCMTRadar = ({ vectors }) => {
-  const cx = 100, cy = 90
-  // axis angles matching reference: PERF top, ARCH right, ADAPT br, COMP bl, LEAD left
-  const axes = [
-    { ang: -90, label: 'PERFORMANCE', r: vectors[0]?.pct ?? 0 },
-    { ang: -18, label: 'ARCH',        r: vectors[2]?.pct ?? 0 },
-    { ang:  54, label: 'ADAPT',       r: vectors[4]?.pct ?? 0 },
-    { ang: 126, label: 'COMPLIANCE',  r: vectors[1]?.pct ?? 0 },
-    { ang: 198, label: 'LEAD',        r: vectors[3]?.pct ?? 0 },
-  ]
-  // outer grid ring points (at r=70 → full)
-  const maxR = 70
+// ── 5 scoring criteria (matching candidates_final.json scoreCriteria) ─────────
+const HCMT_CRITERIA = [
+  { key: 'pipeline',    label: 'Pipeline Architecture', short: 'PIPELINE', color: 'oklch(70% 0.17 145)' },
+  { key: 'scalability', label: 'Scalability',           short: 'SCALE',    color: 'oklch(72% 0.15 195)' },
+  { key: 'gov',         label: 'Data Governance',       short: 'GOV',      color: 'oklch(70% 0.15 195)' },
+  { key: 'sovereignty', label: 'Data Sovereignty',      short: 'SOVR',     color: 'oklch(75% 0.13 80)'  },
+  { key: 'privacy',     label: 'Privacy Engineering',   short: 'PRIVACY',  color: 'oklch(65% 0.2 25)'   },
+]
+
+// ── Pentagon radar — driven purely by pct values (0-100) ─────────────────────
+const HCMTRadar = ({ values }) => {
+  // values: array of 0–100 matching HCMT_CRITERIA order
+  const cx = 100, cy = 90, maxR = 70
+  const ANGLES = [-90, -18, 54, 126, 198]
   const toPt = (ang, r) => {
     const a = ang * Math.PI / 180
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) }
   }
-  const outerPts = axes.map(a => toPt(a.ang, maxR))
-  const innerPts = axes.map(a => toPt(a.ang, maxR * 0.55))
-  const dataPts  = axes.map(a => toPt(a.ang, maxR * (a.r / 100)))
-  const polyStr = pts => pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const labelPts = axes.map(a => toPt(a.ang, maxR + 16))
+  const outer    = ANGLES.map(a => toPt(a, maxR))
+  const inner    = ANGLES.map(a => toPt(a, maxR * 0.5))
+  const dataPts  = ANGLES.map((a, i) => toPt(a, maxR * ((values[i] ?? 0) / 100)))
+  const labelPts = ANGLES.map(a => toPt(a, maxR + 18))
+  const poly     = pts => pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
 
   return (
-    <svg viewBox="0 0 200 180" width="100%" style={{ maxHeight: 200 }}>
-      {/* grid outer + inner rings */}
-      <polygon points={polyStr(outerPts)} fill="none" stroke="oklch(40% 0.04 250)" strokeWidth="1" />
-      <polygon points={polyStr(innerPts)} fill="none" stroke="oklch(40% 0.04 250)" strokeWidth="1" />
-      {/* axis lines */}
-      {axes.map((a, i) => {
-        const outer = toPt(a.ang, maxR)
-        return <line key={i} x1={cx} y1={cy} x2={outer.x.toFixed(1)} y2={outer.y.toFixed(1)} stroke="oklch(40% 0.04 250)" strokeWidth="1" />
+    <svg viewBox="0 0 200 185" width="100%" style={{ maxHeight: 200 }}>
+      <polygon points={poly(outer)} fill="none" stroke="oklch(40% 0.04 250)" strokeWidth="1"/>
+      <polygon points={poly(inner)} fill="none" stroke="oklch(40% 0.04 250)" strokeWidth="1"/>
+      {ANGLES.map((a, i) => {
+        const o = toPt(a, maxR)
+        return <line key={i} x1={cx} y1={cy} x2={o.x.toFixed(1)} y2={o.y.toFixed(1)} stroke="oklch(40% 0.04 250)" strokeWidth="1"/>
       })}
-      {/* data polygon — green fill */}
-      <polygon points={polyStr(dataPts)} fill="oklch(68% 0.17 145 / 0.25)" stroke="oklch(70% 0.17 145)" strokeWidth="2" strokeLinejoin="round" />
-      {/* axis labels */}
-      {axes.map((a, i) => (
+      <polygon points={poly(dataPts)}
+        fill="oklch(68% 0.17 145 / 0.22)" stroke="oklch(70% 0.17 145)"
+        strokeWidth="2" strokeLinejoin="round"/>
+      {dataPts.map((p, i) => (
+        <circle key={i} cx={p.x} cy={p.y} r="3.5"
+          fill={HCMT_CRITERIA[i].color} opacity="0.9"/>
+      ))}
+      {HCMT_CRITERIA.map((c, i) => (
         <text key={i} x={labelPts[i].x.toFixed(1)} y={labelPts[i].y.toFixed(1)}
           textAnchor="middle" dominantBaseline="middle"
-          fontSize="8" fill="oklch(75% 0.02 250)" fontFamily={APP_FONT}>{a.label}</text>
+          fontSize="7.5" fill="oklch(72% 0.02 250)" fontFamily={APP_FONT}
+          fontWeight="700">{c.short}</text>
       ))}
     </svg>
   )
 }
 
+// ── JDVisualView — shown from PostJobView after uploading a JD file ───────────
+// Uses the same HCMTView shell but in "post" mode with a file name in the title.
 const JDVisualView = ({ file, onPost, onBack }) => {
+  return (
+    <HCMTView
+      titleSuffix={file?.name?.toUpperCase().replace(/\.[^.]+$/, '') || 'JD UPLOAD'}
+      jobTitle="SENIOR CLOUD DATA ENGINEER"
+      onBack={onBack}
+      actionLabel="POST ROLE & START MATCHING"
+      onAction={onPost}
+    />
+  )
+}
+
+// ── HCMTView — the full interactive HCMT page ─────────────────────────────────
+// Props:
+//   titleSuffix  string shown in the top-right of the title bar
+//   jobTitle     string for the TICKER row
+//   onBack       () => void
+//   actionLabel  string for the primary CTA (default "SAVE CHANGES")
+//   onAction     () => void  (called when CTA is pressed)
+const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHANGES', onAction }) => {
   const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
 
-  // ── Parsed data (simulated AI extraction) ───────────────────────────
-  const ticker   = 'AVA: SDE-CLOUD'
-  const roleTitle = 'SENIOR CLOUD DATA ENGINEER'
-  const assetClass = 'HUMAN CAPITAL: DATA ENG.'
-  const issueDate = today
-  const status    = 'ACTIVE BUY ORDER (HIRING)'
+  // ── Live slider state — one value (0–10) per criterion ────────────────
+  const [sliderVals, setSliderVals] = useState(
+    Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, c.key === 'privacy' ? 2 : c.key === 'sovereignty' ? 10 : c.key === 'pipeline' ? 9 : 6]))
+  )
+  const setVal = (key, v) => setSliderVals(prev => ({ ...prev, [key]: v }))
+
+  // pct for radar (0-100)
+  const radarValues = HCMT_CRITERIA.map(c => (sliderVals[c.key] / 10) * 100)
+
+  // Derived tag label from value
+  const tag = v => v >= 9 ? '[MAX]' : v >= 7 ? '[HIGH]' : v >= 5 ? '[MODERATE]' : v >= 3 ? '[LOW]' : '[MIN]'
+
   const matchPool = 18
   const compRange = '£150k – £195k'
-  const strategyBrief = [
-    'This Senior Cloud Data Engineer is a direct "Asset-Liability Match" to our Q3 goal of reducing platform latency by 20%.',
-    { amber: true, text: '**COMPLIANCE AT ZERO IS ACCEPTABLE due to existing legal infrastructure.**' },
-    { label: 'CAPITAL OUTLAY TARGET:', value: '£195k (MAX)' },
-  ]
 
-  // Competency vectors — left panel
-  const vectors = [
-    { name: 'PERFORMANCE (PERF)',    val: '9.5/10', tag: '[MAX]',      pct: 95, color: 'oklch(70% 0.17 145)', target: 'TARGET PERF SCORE: 850', premium: '+15% PREMIUM FOR PERFORMANCE VECTOR' },
-    { name: 'COMPLIANCE (COMP)',     val: '2.0/10', tag: '[MIN]',      pct: 20, color: 'oklch(65% 0.2 25)',   target: 'TARGET COMP SCORE: 350',  premium: null },
-    { name: 'ARCHITECTURE (ARCH)',   val: '7.5/10', tag: '[HIGH]',     pct: 75, color: 'oklch(72% 0.15 195)', target: null, premium: null },
-    { name: 'LEADERSHIP (LEAD)',     val: '5.0/10', tag: '[MODERATE]', pct: 50, color: 'oklch(75% 0.13 80)',  target: null, premium: null },
-    { name: 'ADAPTABILITY (ADAPT)',  val: '6.5/10', tag: '[HIGH]',     pct: 65, color: 'oklch(72% 0.15 195)', target: null, premium: null },
-  ]
-
-  // Proof of work — right panel
-  const proofs = [
-    { mark: '✓', ok: true,  title: '[[GITHUB]] COMMITS',   desc: 'PERF OPTIMIZATION, CACHING' },
-    { mark: '✓', ok: true,  title: '[[JIRA]] ROLE',        desc: 'TECH LEAD, SCALE MIGRATIONS' },
-    { mark: '✓', ok: true,  title: '[[CLOUD CERT.]]',      desc: 'AWS ARCHITECT, PERFORMANCE SPECIALIST' },
-    { mark: '⊗', ok: false, title: '[DISABLED] [HIPAA/GDPR]', desc: 'GDPR ENVIRONMENT · *MIN COMP REQUIREMENT' },
-  ]
-
-  // ── Shared style tokens ──────────────────────────────────────────────
+  // ── Shared panel styles ────────────────────────────────────────────────
   const panel = {
     background: 'oklch(18% 0.03 250)',
     border:     '1px solid oklch(45% 0.16 195 / 0.5)',
@@ -611,12 +639,10 @@ const JDVisualView = ({ file, onPost, onBack }) => {
     border: '1px solid oklch(35% 0.03 250)', color: 'oklch(60% 0.02 250)',
     borderRadius: 2, fontSize: 11, cursor: 'default',
   }
-  const sectionPad = { padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }
+  const sectionPad = { padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 16, flex: 1 }
   const label12 = { fontSize: 12, fontWeight: 700, color: 'oklch(88% 0.02 195)', letterSpacing: '0.03em' }
-  const muted   = { fontSize: 10, color: 'oklch(55% 0.02 250)', letterSpacing: '0.04em', marginTop: 6 }
 
   return (
-    // Root uses APP_FONT (Satoshi) — same font as the left navigation
     <div style={{
       fontFamily: APP_FONT,
       background: 'oklch(13% 0.025 250)',
@@ -626,7 +652,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
       borderRadius: 8,
     }}>
 
-      {/* ── TITLE BAR ── */}
+      {/* TITLE BAR */}
       <div style={{ ...panel, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ letterSpacing: '0.25em', fontSize: 11, color: 'oklch(55% 0.02 250)' }}>▤▤▤</span>
@@ -635,77 +661,94 @@ const JDVisualView = ({ file, onPost, onBack }) => {
           HUMAN CAPITAL MARKET TERMINAL (HCMT) — AVA RECRUITER
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'oklch(70% 0.15 195)' }}>
-            {file.name.toUpperCase().replace(/\.[^.]+$/, '')}
-          </span>
+          {titleSuffix && (
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'oklch(70% 0.15 195)' }}>
+              {titleSuffix}
+            </span>
+          )}
           <span style={{ fontSize: 12, color: 'oklch(55% 0.02 250)', letterSpacing: '0.15em' }}>▤ _ ▢ ✕</span>
         </div>
       </div>
 
-      {/* ── TICKER HEADER ── */}
-      <div style={{ ...panel, padding: '16px 18px', gap: 8 }}>
+      {/* TICKER */}
+      <div style={{ ...panel, padding: '14px 18px', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 'clamp(14px,1.6vw,22px)', fontWeight: 800, letterSpacing: '0.04em', color: 'oklch(90% 0.02 195)' }}>
+          <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em', color: 'oklch(90% 0.02 195)' }}>
             TICKER:
           </span>
           <span style={{
-            fontSize: 'clamp(14px,1.6vw,22px)', fontWeight: 800, letterSpacing: '0.04em',
+            fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em',
             color: 'oklch(20% 0.03 250)', background: 'oklch(72% 0.15 80)',
             boxShadow: '0 0 14px oklch(72% 0.18 80 / 0.6)',
             borderRadius: 3, padding: '2px 10px',
-          }}>{ticker}</span>
-          <span style={{ fontSize: 'clamp(14px,1.6vw,22px)', fontWeight: 800, letterSpacing: '0.03em', color: 'oklch(70% 0.15 195)' }}>
-            {roleTitle}
+          }}>AVA: SDE-CLOUD</span>
+          <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.03em', color: 'oklch(70% 0.15 195)' }}>
+            {jobTitle || 'SENIOR DATA ENGINEER'}
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: 13, letterSpacing: '0.03em' }}>
-          <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ASSET CLASS:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>{assetClass}</span></div>
-          <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ISSUE DATE:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>{issueDate}</span></div>
-        </div>
-        <div style={{ fontSize: 13, letterSpacing: '0.03em' }}>
-          <span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>STATUS: </span>
-          <span style={{ color: 'oklch(70% 0.17 145)', fontWeight: 700 }}>{status}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: 12, letterSpacing: '0.03em' }}>
+          <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ASSET CLASS:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>HUMAN CAPITAL: DATA ENG.</span></div>
+          <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ISSUE DATE:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>{today}</span></div>
+          <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>STATUS: </span><span style={{ color: 'oklch(70% 0.17 145)', fontWeight: 700 }}>ACTIVE BUY ORDER (HIRING)</span></div>
         </div>
       </div>
 
-      {/* ── MAIN 3-COLUMN GRID ── */}
+      {/* MAIN 3-COLUMN GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr 1fr', gap: 12, alignItems: 'stretch' }}>
 
-        {/* COL 1 — COMPETENCY VECTORS */}
+        {/* COL 1 — COMPETENCY VECTORS with LIVE SLIDERS */}
         <section style={panel}>
           <div style={panelHead}>
-            <span style={panelTitle}>PARAMETRIC BUY ORDER – COMPETENCY VECTORS</span>
-            <div style={{ display: 'flex', gap: 5 }}>
-              <span style={{ ...panelIcon, border: '1px solid oklch(72% 0.15 80 / 0.6)', color: 'oklch(72% 0.15 80)' }}>+</span>
-              <span style={panelIcon}>⤢</span>
-            </div>
+            <span style={panelTitle}>PARAMETRIC BUY ORDER — COMPETENCY VECTORS</span>
           </div>
           <div style={sectionPad}>
-            {vectors.map((v, i) => (
-              <div key={i}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'oklch(88% 0.02 195)' }}>{v.name}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: v.color }}>{v.val}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: v.color }}>{v.tag}</span>
-                </div>
-                {/* progress bar with glowing dot */}
-                <div style={{ position: 'relative', height: 6, borderRadius: 3, background: 'oklch(26% 0.02 250)' }}>
-                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${v.pct}%`, borderRadius: 3, background: 'oklch(68% 0.17 145)' }} />
-                  <div style={{ position: 'absolute', top: '50%', left: `${v.pct}%`, width: 14, height: 14, borderRadius: '50%', background: 'oklch(72% 0.17 145)', boxShadow: '0 0 10px oklch(70% 0.2 145 / 0.9)', transform: 'translate(-50%,-50%)' }} />
-                </div>
-                {v.target && <div style={muted}>▸ {v.target}</div>}
-                {v.premium && (
-                  <div style={{ marginTop: 8, display: 'inline-block', background: 'oklch(24% 0.05 80)', border: '1px solid oklch(72% 0.15 80 / 0.6)', borderRadius: 3, padding: '6px 10px' }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', color: 'oklch(65% 0.08 80)' }}>VECTOR PREMIUM CALCULATION</div>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'oklch(80% 0.15 80)', marginTop: 2 }}>{v.premium}</div>
+            {HCMT_CRITERIA.map(c => {
+              const val = sliderVals[c.key]
+              const pct = (val / 10) * 100
+              return (
+                <div key={c.key}>
+                  {/* Label row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'oklch(88% 0.02 195)', letterSpacing: '0.02em' }}>
+                      {c.label}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: c.color, minWidth: 32, textAlign: 'right' }}>
+                        {val.toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: c.color }}>{tag(val)}</span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {/* Native range slider — styled via CSS class hcmt-slider */}
+                  <input
+                    type="range"
+                    className="hcmt-slider"
+                    min="0" max="10" step="0.5"
+                    value={val}
+                    onChange={e => setVal(c.key, parseFloat(e.target.value))}
+                    style={{ '--slider-color': c.color, '--slider-pct': `${pct}%` }}
+                  />
+
+                  {/* Visual track (mirrors slider position) */}
+                  <div style={{ position: 'relative', height: 4, borderRadius: 2, background: 'oklch(26% 0.02 250)', marginTop: 4 }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, borderRadius: 2, background: c.color, transition: 'width 0.1s' }}/>
+                    <div style={{
+                      position: 'absolute', top: '50%', left: `${pct}%`,
+                      width: 12, height: 12, borderRadius: '50%',
+                      background: c.color,
+                      boxShadow: `0 0 8px ${c.color}`,
+                      transform: 'translate(-50%,-50%)',
+                      transition: 'left 0.1s',
+                    }}/>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
 
-        {/* COL 2 — FAIR VALUE & RADAR */}
+        {/* COL 2 — RADAR (live-updates with sliders) */}
         <section style={panel}>
           <div style={panelHead}>
             <span style={panelTitle}>DYNAMIC FAIR VALUE &amp; MATCHING</span>
@@ -719,17 +762,17 @@ const JDVisualView = ({ file, onPost, onBack }) => {
                 {' '}<span style={{ fontSize: 12, color: 'oklch(70% 0.02 250)' }}>ACTIVE MATCHING CANDIDATES</span>
               </div>
             </div>
-            <div style={{ height: 1, background: 'oklch(32% 0.03 250)' }} />
+            <div style={{ height: 1, background: 'oklch(32% 0.03 250)' }}/>
             <div>
               <div style={label12}>EST. TOTAL COMP RANGE:</div>
-              <div style={{ fontSize: 'clamp(20px,2.2vw,28px)', fontWeight: 800, color: 'oklch(70% 0.15 195)', marginTop: 4, textShadow: '0 0 16px oklch(60% 0.2 195 / 0.5)' }}>{compRange}</div>
+              <div style={{ fontSize: 'clamp(18px,2vw,26px)', fontWeight: 800, color: 'oklch(70% 0.15 195)', marginTop: 4, textShadow: '0 0 16px oklch(60% 0.2 195 / 0.5)' }}>{compRange}</div>
               <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em', marginTop: 2 }}>INDEXED TO SCORE TICKER</div>
             </div>
-            {/* Radar chart */}
+            {/* Radar — updates live with sliders */}
             <div style={{ background: 'oklch(15% 0.025 250)', border: '1px solid oklch(45% 0.16 195 / 0.35)', borderRadius: 4, padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'oklch(70% 0.02 250)', marginBottom: 6 }}>TARGET PROFILE SHAPE</div>
-              <div style={{ position: 'relative', flex: 1, minHeight: 170, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <HCMTRadar vectors={vectors} />
+              <div style={{ flex: 1, minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <HCMTRadar values={radarValues} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, color: 'oklch(50% 0.01 250)', fontWeight: 700 }}>
                 <span>LOW</span><span>HIGH</span>
@@ -742,13 +785,14 @@ const JDVisualView = ({ file, onPost, onBack }) => {
         <section style={panel}>
           <div style={panelHead}>
             <span style={panelTitle}>REQUIRED PROOF OF WORK &amp; VERIFICATION</span>
-            <div style={{ display: 'flex', gap: 5 }}>
-              <span style={panelIcon}>⎘</span>
-              <span style={panelIcon}>≣</span>
-            </div>
           </div>
           <div style={{ ...sectionPad, gap: 12 }}>
-            {proofs.map((p, i) => (
+            {[
+              { mark: '✓', ok: true,  title: '[[GITHUB]] COMMITS',      desc: 'PERF OPTIMIZATION, CACHING' },
+              { mark: '✓', ok: true,  title: '[[JIRA]] ROLE',           desc: 'TECH LEAD, SCALE MIGRATIONS' },
+              { mark: '✓', ok: true,  title: '[[CLOUD CERT.]]',         desc: 'AWS ARCHITECT, PERFORMANCE SPECIALIST' },
+              { mark: '⊗', ok: false, title: '[DISABLED] [HIPAA/GDPR]', desc: 'GDPR ENVIRONMENT · *MIN PRIVACY REQUIREMENT' },
+            ].map((p, i) => (
               <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', opacity: p.ok ? 1 : 0.6 }}>
                 <span style={{
                   width: 18, height: 18, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -757,45 +801,41 @@ const JDVisualView = ({ file, onPost, onBack }) => {
                   color: p.ok ? 'oklch(70% 0.17 145)' : 'oklch(55% 0.02 250)',
                 }}>{p.mark}</span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.02em', color: p.ok ? 'oklch(88% 0.02 195)' : 'oklch(58% 0.02 250)' }}>{p.title}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: p.ok ? 'oklch(88% 0.02 195)' : 'oklch(58% 0.02 250)' }}>{p.title}</div>
                   <div style={{ fontSize: 11, color: p.ok ? 'oklch(72% 0.02 250)' : 'oklch(48% 0.02 250)', marginTop: 2, lineHeight: 1.4 }}>{p.desc}</div>
                 </div>
               </div>
             ))}
+
+            {/* Live score summary */}
+            <div style={{ marginTop: 8, background: 'oklch(15% 0.025 250)', border: '1px solid oklch(45% 0.16 195 / 0.3)', borderRadius: 4, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'oklch(70% 0.02 250)', marginBottom: 8 }}>CURRENT VECTOR WEIGHTS</div>
+              {HCMT_CRITERIA.map(c => (
+                <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                  <span style={{ fontSize: 9, color: 'oklch(62% 0.02 250)', width: 110, flexShrink: 0 }}>{c.label}</span>
+                  <div style={{ flex: 1, height: 3, background: 'oklch(22% 0.02 250)', borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ width: `${(sliderVals[c.key] / 10) * 100}%`, height: '100%', background: c.color, borderRadius: 2, transition: 'width 0.1s' }}/>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: c.color, width: 22, textAlign: 'right' }}>{sliderVals[c.key]}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </div>
 
-      {/* ── STRATEGY BRIEF (ROI) ── */}
-      <section style={panel}>
-        <div style={panelHead}>
-          <span style={panelTitle}>STRATEGY BRIEF (ROI)</span>
-          <span style={panelIcon}>≣</span>
-        </div>
-        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, lineHeight: 1.5, color: 'oklch(80% 0.06 145)' }}>
-          {strategyBrief.map((line, i) =>
-            typeof line === 'string'
-              ? <div key={i}>{line}</div>
-              : line.amber
-                ? <div key={i} style={{ color: 'oklch(80% 0.13 80)', fontWeight: 700 }}>{line.text}</div>
-                : <div key={i}><span style={{ color: 'oklch(88% 0.02 195)', fontWeight: 700 }}>{line.label} </span><span style={{ color: 'oklch(70% 0.15 195)', fontWeight: 800 }}>{line.value}</span></div>
-          )}
-        </div>
-      </section>
-
-      {/* ── ACTION ROW — uses app brand font (Satoshi) ── */}
+      {/* ACTION ROW */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <button className="rl-back-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>← BACK</button>
+        <button className="rl-back-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>← BACK TO MATRIX</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="rl-pulse" />
+          <span className="rl-pulse"/>
           <span style={{ fontSize: 11, letterSpacing: '0.1em', color: 'oklch(55% 0.02 250)', fontFamily: APP_FONT }}>
-            AVA HAS PARSED <strong style={{ color: 'oklch(70% 0.15 195)' }}>{vectors.length} COMPETENCY VECTORS</strong> — READY TO POST
+            {HCMT_CRITERIA.length} COMPETENCY VECTORS ACTIVE — RADAR UPDATING LIVE
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="rl-ghost-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>EDIT JD</button>
-          <button className="rl-cta-btn" onClick={onPost} style={{ fontFamily: APP_FONT }}>POST ROLE &amp; START MATCHING</button>
-        </div>
+        <button className="rl-cta-btn" onClick={onAction} style={{ fontFamily: APP_FONT }}>
+          {actionLabel}
+        </button>
       </div>
     </div>
   )
