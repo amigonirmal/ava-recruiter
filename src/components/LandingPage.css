@@ -2969,9 +2969,11 @@
   transition: background 0.15s, color 0.15s;
 }
 .mmc-tab:hover { color: oklch(80% 0.03 250); background: oklch(22% 0.03 250); }
-.mmc-tab.active {
+.mmc-tab.active,
+.mmc-tab--active {
   background: oklch(25% 0.04 195);
   color: oklch(72% 0.15 195);
+  border: 1px solid oklch(45% 0.16 195 / 0.5);
 }
 
 /* Close position button */

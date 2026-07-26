@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import './LandingPage.css'
 import { fetchJobs, postJob, fetchCandidates } from '../services/jobsApi'
 import TalentHeatmap from './TalentHeatmap'
@@ -74,6 +75,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [loading, setLoading]                     = useState(!candidatesData)
   const [showHCMT, setShowHCMT]                   = useState(false)
   const [showScorecard, setShowScorecard]         = useState(false)
+  const [cardFilter, setCardFilter]               = useState('All') // 'All' | 'Accepted' | 'Pending'
 
   // JD weights — set via HCMT sliders; default matches scorecard spec:
   // pipeline:9, scalability:8, gov:8, sovereignty:9, privacy:10
@@ -99,6 +101,13 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   }), [jdWeights, candidates, job?.id])
 
   const rankedList = rankResult.ranked_candidates
+
+  // Filtered card grid list — driven by the All/Accepted/Pending tab
+  const filteredList = rankedList.filter(rc => {
+    if (cardFilter === 'Accepted') return rc._candidate.jobApplicationStatus === 'accepted'
+    if (cardFilter === 'Pending')  return rc._candidate.jobApplicationStatus !== 'accepted'
+    return true
+  })
 
   // ── helpers ──
   const now = new Date()
@@ -223,10 +232,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
           >
             ✎ EDIT JD
           </button>
-          {/* filter tabs */}
+          {/* filter tabs — wired to cardFilter state */}
           <div className="mmc-tabs">
             {['All','Accepted','Pending'].map(t => (
-              <span key={t} className="mmc-tab">{t.toUpperCase()}</span>
+              <span
+                key={t}
+                className={`mmc-tab${cardFilter === t ? ' mmc-tab--active' : ''}`}
+                onClick={() => setCardFilter(t)}
+              >{t.toUpperCase()}</span>
             ))}
           </div>
           {!isClosed ? (
@@ -274,9 +287,9 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             )}
           </div>
 
-          {/* CARD GRID — ranked order, 6 columns */}
+          {/* CARD GRID — filtered + ranked order, 6 columns */}
           <div className="mmc-grid">
-            {rankedList.map((rc, idx) => {
+            {filteredList.map((rc, idx) => {
               const c  = rc._candidate
               const st = cardStyle(c)
               const isSelected = selectedCandidate?.id === c.id
@@ -423,7 +436,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
               LIVE RANKING LEADERBOARD
             </div>
             <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8, letterSpacing:'0.04em' }}>
-              WEIGHTED MATCH · {rankedList.length} CANDIDATES
+              ACCEPTED PROFILES · {rankedList.filter(r => r._candidate.jobApplicationStatus === 'accepted').length} CANDIDATES
             </div>
 
             {/* Column headers */}
@@ -435,11 +448,11 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
               <span style={{ width:46, textAlign:'right' }}>MATCH</span>
             </div>
 
-            {/* Ranked rows */}
+            {/* Accepted-only ranked rows */}
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              {rankedList.map((rc, idx) => {
+              {rankedList.filter(rc => rc._candidate.jobApplicationStatus === 'accepted').map((rc, idx) => {
                 const isSelected = selectedCandidate?.id === rc._candidate.id
-                const isAccepted = rc._candidate.jobApplicationStatus === 'accepted'
+                const isAccepted = true
                 const scoreCol = rc.match_percentage >= 70
                   ? 'oklch(70% 0.17 145)'
                   : rc.match_percentage >= 45
@@ -682,8 +695,8 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
         </div>
       </div>
 
-      {/* ── SCORECARD MODAL OVERLAY ── */}
-      {showScorecard && (
+      {/* ── SCORECARD MODAL OVERLAY — portalled to document.body to escape sidebar stacking context ── */}
+      {showScorecard && createPortal(
         <div className="sc-overlay" onClick={() => setShowScorecard(false)}>
           <div className="sc-modal" onClick={e => e.stopPropagation()}>
 
@@ -866,7 +879,8 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

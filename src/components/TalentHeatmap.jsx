@@ -74,6 +74,54 @@ const HeatLayer = ({ points }) => {
   return null
 }
 
+// ─── Custom zoom controls — imperative, uses map instance ─────────────────────
+const ZoomControls = () => {
+  const map = useMap()
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 3,
+    }}>
+      {[
+        { label: '+', title: 'Zoom in',  fn: () => map.zoomIn()  },
+        { label: '−', title: 'Zoom out', fn: () => map.zoomOut() },
+      ].map(({ label, title, fn }) => (
+        <button
+          key={label}
+          title={title}
+          onClick={fn}
+          style={{
+            width: 24,
+            height: 24,
+            background: 'oklch(18% 0.03 250)',
+            border: '1px solid oklch(45% 0.16 195 / 0.55)',
+            borderRadius: 3,
+            color: 'oklch(72% 0.15 195)',
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            fontSize: 14,
+            fontWeight: 800,
+            lineHeight: 1,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.12s, color 0.12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'oklch(24% 0.04 195)'; e.currentTarget.style.color = '#00e6d2' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'oklch(18% 0.03 250)'; e.currentTarget.style.color = 'oklch(72% 0.15 195)' }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Public component ─────────────────────────────────────────────────────────
 // Drop-in replacement for the static SVG heatmap in MatchingMatrixView.
 // Props:
@@ -93,8 +141,8 @@ const TalentHeatmap = ({ height = '180px', points = TALENT_CLUSTERS }) => {
         center={[25, 15]}
         zoom={2}
         minZoom={1}
-        maxZoom={6}
-        scrollWheelZoom={false}
+        maxZoom={10}
+        scrollWheelZoom={true}
         zoomControl={false}
         attributionControl={false}
         style={{ height: '100%', width: '100%', background: 'oklch(12% 0.02 250)' }}
@@ -105,6 +153,7 @@ const TalentHeatmap = ({ height = '180px', points = TALENT_CLUSTERS }) => {
           attribution=""
         />
         <HeatLayer points={points} />
+        <ZoomControls />
       </MapContainer>
     </div>
   )
