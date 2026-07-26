@@ -3582,3 +3582,5 @@
 }
 .cvp-processing-step.done { color: var(--color-teal); }
 .cvp-step-check { font-size: 0.7rem; }
+
+@keyframes spin { to { transform: rotate(360deg); } }

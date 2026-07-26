@@ -2,17 +2,20 @@
  * AVA Recruiter — API Server
  *
  * Routes:
- *   GET  /api/jobs          → return all jobs (local JSON, restored from GCS on cold-start)
- *   POST /api/jobs          → append a new job, persist locally + upload to GCS
- *   GET  /healthz           → health check for Cloud Run
+ *   GET  /api/jobs                   → return all jobs (local JSON, restored from GCS on cold-start)
+ *   POST /api/jobs                   → append a new job, persist locally + upload to GCS
+ *   GET  /api/candidates             → return candidates_final.json (from GCS if available, else local)
+ *   PATCH /api/candidates/:id        → update a single candidate field (e.g. jobApplicationStatus)
+ *   GET  /healthz                    → health check for Cloud Run
  *
  * In production (Cloud Run) Node also serves the pre-built React SPA from /dist.
  *
  * Env vars — set in api/.env for local dev, or in Cloud Run service:
- *   PORT              default 3001  (Cloud Run injects 8080)
- *   GCS_BUCKET        GCS bucket name, e.g. ava-storage-bucket
- *   GCS_JOBS_OBJECT   object path inside bucket, default data/jobs.json
- *   NODE_ENV          production | development
+ *   PORT                  default 3001  (Cloud Run injects 8080)
+ *   GCS_BUCKET            GCS bucket name, e.g. ava-storage-bucket
+ *   GCS_JOBS_OBJECT       object path inside bucket, default data/jobs.json
+ *   GCS_CANDIDATES_OBJECT object path for candidates, default candidates/candidates_final.json
+ *   NODE_ENV              production | development
  */
 
 // ── Load .env from api/ directory (local dev only; no-op if file absent) ─────
@@ -27,14 +30,16 @@ const { randomUUID } = require('crypto')
 const app  = express()
 const PORT = process.env.PORT || 3001
 
-// ── Data store path ───────────────────────────────────────────────────────────
-const DATA_DIR  = path.resolve(__dirname, '..', 'data')
-const JOBS_FILE = path.join(DATA_DIR, 'jobs.json')
+// ── Data store paths ──────────────────────────────────────────────────────────
+const DATA_DIR       = path.resolve(__dirname, '..', 'data')
+const JOBS_FILE      = path.join(DATA_DIR, 'jobs.json')
+const CANDS_FILE     = path.resolve(__dirname, '..', 'src', 'data', 'candidates_final.json')
 
 // ── GCS setup (active when GCS_BUCKET env var is set) ────────────────────────
-const GCS_BUCKET = (process.env.GCS_BUCKET || '').trim()
-const GCS_OBJECT = (process.env.GCS_JOBS_OBJECT || 'data/jobs.json').trim()
-let gcsBucket    = null
+const GCS_BUCKET      = (process.env.GCS_BUCKET || '').trim()
+const GCS_OBJECT      = (process.env.GCS_JOBS_OBJECT || 'data/jobs.json').trim()
+const GCS_CANDS_OBJ   = (process.env.GCS_CANDIDATES_OBJECT || 'candidates/candidates_final.json').trim()
+let gcsBucket         = null
 
 if (GCS_BUCKET) {
   try {
@@ -51,17 +56,22 @@ if (GCS_BUCKET) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function readJobs() {
-  try {
-    return JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8'))
-  } catch {
-    return []
-  }
+  try { return JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8')) } catch { return [] }
 }
 
 function writeJobs(jobs) {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
   fs.writeFileSync(JOBS_FILE, JSON.stringify(jobs, null, 2))
   console.log(`[jobs] wrote ${jobs.length} jobs to ${JOBS_FILE}`)
+}
+
+function readCandidates() {
+  try { return JSON.parse(fs.readFileSync(CANDS_FILE, 'utf8')) } catch { return { candidates: [] } }
+}
+
+function writeCandidates(data) {
+  fs.writeFileSync(CANDS_FILE, JSON.stringify(data, null, 2))
+  console.log(`[candidates] wrote to ${CANDS_FILE}`)
 }
 
 async function uploadToGcs(jobs) {
@@ -79,26 +89,54 @@ async function uploadToGcs(jobs) {
   }
 }
 
+async function uploadCandidatesToGcs(data) {
+  if (!gcsBucket) return
+  try {
+    await gcsBucket.file(GCS_CANDS_OBJ).save(JSON.stringify(data, null, 2), {
+      contentType: 'application/json',
+      metadata: { cacheControl: 'no-cache' },
+    })
+    console.log(`[gcs] ✓ uploaded candidates → gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+  } catch (err) {
+    console.error(`[gcs] ✗ candidates upload failed: ${err.message}`)
+  }
+}
+
 /**
- * Cold-start restore — if GCS has a jobs file, load it and overwrite the local
- * seed file.  This means a fresh container revision sees all previously posted
- * jobs instead of just the seed data.
+ * Cold-start restore — pull jobs AND candidates from GCS so a fresh
+ * container revision sees the latest data instead of the baked-in seed.
  */
 async function restoreFromGcs() {
   if (!gcsBucket) return
+
+  // Restore jobs
   try {
-    const file = gcsBucket.file(GCS_OBJECT)
-    const [exists] = await file.exists()
-    if (!exists) {
+    const jobsFile = gcsBucket.file(GCS_OBJECT)
+    const [jobsExist] = await jobsFile.exists()
+    if (jobsExist) {
+      const [content] = await jobsFile.download()
+      writeJobs(JSON.parse(content.toString('utf8')))
+      console.log(`[gcs] ✓ restored jobs from gs://${GCS_BUCKET}/${GCS_OBJECT}`)
+    } else {
       console.log('[gcs] no jobs file in bucket yet — using local seed')
-      return
     }
-    const [content] = await file.download()
-    const jobs = JSON.parse(content.toString('utf8'))
-    writeJobs(jobs)
-    console.log(`[gcs] ✓ restored ${jobs.length} jobs from gs://${GCS_BUCKET}/${GCS_OBJECT}`)
   } catch (err) {
-    console.error(`[gcs] cold-start restore failed (using local seed): ${err.message}`)
+    console.error(`[gcs] jobs restore failed (using local seed): ${err.message}`)
+  }
+
+  // Restore candidates
+  try {
+    const candsFile = gcsBucket.file(GCS_CANDS_OBJ)
+    const [candsExist] = await candsFile.exists()
+    if (candsExist) {
+      const [content] = await candsFile.download()
+      writeCandidates(JSON.parse(content.toString('utf8')))
+      console.log(`[gcs] ✓ restored candidates from gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+    } else {
+      console.log('[gcs] no candidates file in bucket yet — using local seed')
+    }
+  } catch (err) {
+    console.error(`[gcs] candidates restore failed (using local seed): ${err.message}`)
   }
 }
 
@@ -112,9 +150,34 @@ app.use(express.json({ limit: '2mb' }))
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }))
 
 // GET /api/jobs
-app.get('/api/jobs', (_req, res) => {
-  const jobs = readJobs()
-  res.json(jobs)
+app.get('/api/jobs', (_req, res) => res.json(readJobs()))
+
+// GET /api/candidates
+// Always reads from disk (which was restored from GCS on cold-start).
+// This means editing candidates_final.json in GCS → restart container → live data.
+app.get('/api/candidates', (_req, res) => {
+  res.json(readCandidates())
+})
+
+// PATCH /api/candidates/:id  — update a single candidate field at runtime
+// Body: { "jobApplicationStatus": "accepted" }  (any top-level field)
+app.patch('/api/candidates/:id', async (req, res) => {
+  const { id } = req.params
+  const updates = req.body
+  if (!updates || typeof updates !== 'object') {
+    return res.status(400).json({ error: 'body must be a JSON object of fields to update' })
+  }
+
+  const data = readCandidates()
+  const idx  = (data.candidates || []).findIndex(c => c.id === id)
+  if (idx === -1) return res.status(404).json({ error: `candidate id "${id}" not found` })
+
+  data.candidates[idx] = { ...data.candidates[idx], ...updates }
+  writeCandidates(data)
+  await uploadCandidatesToGcs(data)
+
+  console.log(`[candidates] patched ${id}:`, updates)
+  res.json(data.candidates[idx])
 })
 
 // POST /api/jobs

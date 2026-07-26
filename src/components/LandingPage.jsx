@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import './LandingPage.css'
-import { fetchJobs, postJob } from '../services/jobsApi'
-import CANDIDATES_DATA from '../data/candidates_final.json'
+import { fetchJobs, postJob, fetchCandidates } from '../services/jobsApi'
 import TalentHeatmap from './TalentHeatmap'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
@@ -67,11 +66,20 @@ const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches })
 // ─── Matching Matrix View  ─────────────────────────────────────────────────────
 // Layout follows the reference "Matching Matrix Command Center" HTML exactly.
 // Colours: dark navy oklch palette, amber talent dots, teal/green accents.
-const MatchingMatrixView = ({ job, onBack, onClose }) => {
-  const candidates    = CANDIDATES_DATA.candidates
-  const scoreCriteria = CANDIDATES_DATA.scoreCriteria
+const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
+  const [candidates, setCandidates]       = useState(candidatesData?.candidates    || [])
+  const [scoreCriteria]                   = useState(candidatesData?.scoreCriteria || [])
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [isClosed, setIsClosed]                   = useState(false)
+  const [loading, setLoading]                     = useState(!candidatesData)
+
+  // Fetch live candidate data from the API every time the matrix opens
+  useEffect(() => {
+    setLoading(true)
+    fetchCandidates()
+      .then(data => { setCandidates(data.candidates || []); setLoading(false) })
+      .catch(err  => { console.error('fetchCandidates:', err); setLoading(false) })
+  }, [])
 
   // ── helpers ──
   const now = new Date()
@@ -241,7 +249,14 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
               </span>
             </div>
           </div>
-          <div style={{ fontSize:10, letterSpacing:'0.05em', color:'oklch(58% 0.02 250)' }}>TOP MATCHING PROFILES</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:10, letterSpacing:'0.05em', color:'oklch(58% 0.02 250)' }}>
+            TOP MATCHING PROFILES
+            {loading && (
+              <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%',
+                border:'2px solid oklch(45% 0.16 195 / 0.4)', borderTopColor:'oklch(72% 0.15 195)',
+                animation:'spin 0.7s linear infinite' }}/>
+            )}
+          </div>
 
           {/* CARD GRID — 6 columns */}
           <div className="mmc-grid">
