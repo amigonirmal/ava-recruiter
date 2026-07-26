@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './LandingPage.css'
 import { fetchJobs, postJob } from '../services/jobsApi'
 import CANDIDATES_DATA from '../data/candidates_final.json'
+import TalentHeatmap from './TalentHeatmap'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
@@ -138,16 +139,6 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
       </div>
     )
   }
-
-  // Amber heat dots from reference (California, Berlin, Bariana, Bengaluru)
-  const heatDots = [
-    { x:72, y:78, r:4, glowR:12, tx:66, ty:98, anchor:'middle', label:'California' },
-    { x:236, y:56, r:5, glowR:14, tx:246, ty:50, anchor:'start', label:'Berlin' },
-    { x:224, y:64, r:3, glowR:8, tx:200, ty:80, anchor:'end', label:'Bariana' },
-    { x:314, y:104, r:5, glowR:14, tx:324, ty:112, anchor:'start', label:'Bengaluru' },
-    { x:258, y:118, r:3, glowR:8, tx:258, ty:134, anchor:'middle', label:'' },
-    { x:378, y:166, r:3, glowR:8, tx:386, ty:170, anchor:'start', label:'' },
-  ]
 
   const liveLine  = isClosed ? 'CLOSED: Position Filled' : 'LIVE: Underwriting Phase'
   const liveColor = isClosed ? 'oklch(65% 0.02 250)' : 'oklch(70% 0.17 145)'
@@ -346,43 +337,11 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
           {/* ── BOTTOM ROW ── */}
           <div style={{ display:'grid', gridTemplateColumns:'1.6fr 1fr', gap:8 }}>
 
-            {/* Heatmap */}
+            {/* Heatmap — React Leaflet */}
             <div className="mmc-panel">
               <div style={{ fontSize:11, fontWeight:800, color:'oklch(90% 0.05 195)' }}>TALENT SUPPLY HEATMAP</div>
-              <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:6 }}>AA+ talent clusters</div>
-              <div style={{ position:'relative', height:150, background:'oklch(12% 0.02 250)', borderRadius:3, overflow:'hidden' }}>
-                <svg viewBox="0 0 440 240" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
-                  <defs>
-                    <pattern id="mmc-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                      <path d="M24 0 L0 0 0 24" fill="none" stroke="oklch(30% 0.03 250 / 0.5)" strokeWidth="0.5"/>
-                    </pattern>
-                  </defs>
-                  <rect x="0" y="0" width="440" height="240" fill="url(#mmc-grid)"/>
-                  <g fill="oklch(38% 0.03 250)" stroke="oklch(60% 0.14 195 / 0.55)" strokeWidth="0.8" strokeLinejoin="round">
-                    <path d="M40,56 L70,44 L104,42 L128,54 L120,66 L132,72 L120,92 L128,104 L110,120 L96,110 L98,92 L82,96 L74,82 L58,80 L52,66 Z"/>
-                    <path d="M150,32 L178,30 L186,44 L172,54 L154,48 Z"/>
-                    <path d="M120,134 L138,128 L150,138 L152,160 L140,188 L128,210 L118,190 L116,166 L110,146 Z"/>
-                    <path d="M212,52 L238,46 L256,50 L250,60 L258,66 L242,74 L228,68 L218,74 L210,64 Z"/>
-                    <path d="M216,84 L248,78 L268,84 L272,108 L258,138 L244,164 L228,148 L222,120 L214,100 Z"/>
-                    <path d="M258,44 L320,36 L372,42 L392,56 L378,70 L392,80 L360,86 L336,78 L312,84 L296,74 L272,76 L262,60 Z"/>
-                    <path d="M300,88 L322,86 L326,100 L314,120 L302,104 Z"/>
-                    <path d="M340,96 L368,92 L380,104 L360,116 L344,108 Z"/>
-                    <path d="M356,152 L392,146 L406,164 L392,184 L364,180 L352,164 Z"/>
-                  </g>
-                  {heatDots.map((h, i) => (
-                    <g key={i}>
-                      <circle cx={h.x} cy={h.y} r={h.glowR} fill="oklch(72% 0.2 55 / 0.22)"/>
-                      <circle cx={h.x} cy={h.y} r={h.r} fill="oklch(78% 0.21 55)"/>
-                      {h.label && (
-                        <text x={h.tx} y={h.ty} textAnchor={h.anchor} fontSize="9" fontWeight="700"
-                          fill="oklch(90% 0.07 55)" fontFamily="'JetBrains Mono', monospace">
-                          {h.label}
-                        </text>
-                      )}
-                    </g>
-                  ))}
-                </svg>
-              </div>
+              <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:6 }}>AA+ talent clusters · live geo-distribution</div>
+              <TalentHeatmap height="175px" />
             </div>
 
             {/* Volatility */}
