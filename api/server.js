@@ -31,9 +31,11 @@ const app  = express()
 const PORT = process.env.PORT || 3001
 
 // ── Data store paths ──────────────────────────────────────────────────────────
+// Both files live under /app/data/ in the container (see Dockerfile COPY steps).
+// In local dev __dirname = .../ava-recruiter/api, so ../data resolves correctly.
 const DATA_DIR       = path.resolve(__dirname, '..', 'data')
 const JOBS_FILE      = path.join(DATA_DIR, 'jobs.json')
-const CANDS_FILE     = path.resolve(__dirname, '..', 'src', 'data', 'candidates_final.json')
+const CANDS_FILE     = path.join(DATA_DIR, 'candidates_final.json')
 
 // ── GCS setup (active when GCS_BUCKET env var is set) ────────────────────────
 const GCS_BUCKET      = (process.env.GCS_BUCKET || '').trim()

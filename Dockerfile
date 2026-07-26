@@ -26,8 +26,9 @@ WORKDIR /app
 # Copy built React assets
 COPY --from=builder /app/dist ./dist
 
-# Copy seed data (initial jobs.json)
+# Copy seed data (initial jobs.json + candidates_final.json)
 COPY data/ ./data/
+COPY src/data/candidates_final.json ./data/candidates_final.json
 
 # Copy API source + production node_modules
 COPY api/server.js ./api/server.js
