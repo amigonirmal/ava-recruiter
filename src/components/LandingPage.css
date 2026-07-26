@@ -2861,3 +2861,724 @@
   .mm-banner { flex-direction: column; align-items: flex-start; }
   .mm-banner-right { width: 100%; justify-content: space-between; }
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   MMC (Matching Matrix Command Center) — mmc-* classes
+   Used by MatchingMatrixView inline-style layout
+═══════════════════════════════════════════════════════════════ */
+
+.mmc {
+  font-family: 'JetBrains Mono', 'Satoshi', ui-monospace, monospace;
+  background: oklch(11% 0.02 250);
+  color: oklch(88% 0.02 250);
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+
+/* Back button in chrome bar */
+.mm-back-btn-chrome {
+  background: oklch(20% 0.03 250 / 0.8);
+  border: 1px solid oklch(45% 0.16 195 / 0.5);
+  color: oklch(72% 0.15 195);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mm-back-btn-chrome:hover { background: oklch(26% 0.04 250); }
+
+/* Icon rail items */
+.mmc-rail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.mmc-rail:hover { background: oklch(22% 0.03 250); }
+
+/* Card grid — 6 columns */
+.mmc-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+@media (max-width: 1200px) { .mmc-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .mmc-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px)  { .mmc-grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* Individual candidate card */
+.mmc-card {
+  background: oklch(15% 0.025 250);
+  border-radius: 6px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 118px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+.mmc-card:hover { transform: translateY(-2px); }
+
+/* Selected card ring */
+.mmc-card--sel {
+  outline: 2px solid oklch(70% 0.17 145);
+  outline-offset: 1px;
+}
+
+/* Panel blocks (inbound monitor sections, heatmap, volatility) */
+.mmc-panel {
+  background: oklch(15% 0.025 250);
+  border: 1px solid oklch(45% 0.16 195 / 0.35);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+/* Filter tabs row */
+.mmc-tabs {
+  display: flex;
+  gap: 2px;
+  background: oklch(18% 0.03 250);
+  border: 1px solid oklch(45% 0.16 195 / 0.35);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.mmc-tab {
+  background: none;
+  border: none;
+  color: oklch(58% 0.02 250);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mmc-tab:hover { color: oklch(80% 0.03 250); background: oklch(22% 0.03 250); }
+.mmc-tab.active {
+  background: oklch(25% 0.04 195);
+  color: oklch(72% 0.15 195);
+}
+
+/* Close position button */
+.mmc-close-btn {
+  background: oklch(18% 0.04 25);
+  border: 1px solid oklch(55% 0.14 25 / 0.6);
+  color: oklch(80% 0.16 25);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.mmc-close-btn:hover { background: oklch(24% 0.07 25); }
+
+/* Filled badge (after closing) */
+.mmc-filled-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: oklch(18% 0.04 145);
+  border: 1px solid oklch(55% 0.14 145 / 0.5);
+  color: oklch(72% 0.17 145);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+
+/* Reopen link inside filled badge */
+.mmc-reopen {
+  font-size: 9px;
+  font-weight: 500;
+  color: oklch(58% 0.02 250);
+  text-decoration: underline;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.mmc-reopen:hover { color: oklch(72% 0.15 195); }
+
+/* Reveal & underwrite CTA button on named cards */
+.mmc-reveal {
+  margin-top: 4px;
+  background: oklch(22% 0.05 195);
+  border: 1px solid oklch(55% 0.16 195 / 0.6);
+  color: oklch(72% 0.15 195);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 5px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.mmc-reveal:hover { background: oklch(28% 0.07 195); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   CV PROFILE VISUALIZER — cvp-* namespace
+   Triggered by "VIEW PROFILE" / "+ UPLOAD CV" on the Candidates page
+═══════════════════════════════════════════════════════════════ */
+
+.cvp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: var(--color-black);
+  padding: clamp(12px, 1.5vw, 24px);
+  min-height: calc(100vh - 120px);
+  font-family: var(--font-brand);
+}
+
+/* ── Top chrome bar ── */
+.cvp-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-black-mid);
+  border: 1px solid var(--color-black-border);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.cvp-chrome-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-teal);
+}
+.cvp-chrome-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.07em;
+}
+
+/* ── Upload panel ── */
+.cvp-upload-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: var(--color-black-mid);
+  border: 1.5px dashed var(--color-black-border);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+}
+.cvp-upload-panel:hover,
+.cvp-upload-panel.dragover {
+  border-color: rgba(0,230,210,0.45);
+  background: rgba(0,230,210,0.04);
+}
+.cvp-upload-icon { font-size: 2.5rem; }
+.cvp-upload-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-primary);
+}
+.cvp-upload-sub {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  max-width: 320px;
+  line-height: 1.6;
+}
+.cvp-upload-formats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.cvp-fmt-chip {
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 20px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  padding: 0.2rem 0.65rem;
+}
+
+/* ── Profile grid ── */
+.cvp-profile-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cvp-profile-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Left identity card ── */
+.cvp-identity {
+  background: var(--color-black-mid);
+  border: 1px solid var(--color-black-border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+.cvp-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-black-light);
+  border: 2px solid var(--color-teal);
+  box-shadow: 0 0 20px rgba(0,230,210,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-teal);
+  letter-spacing: 0.05em;
+}
+.cvp-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-text-primary);
+}
+.cvp-headline {
+  font-size: 0.68rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+}
+.cvp-score-ring {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin: 0.25rem 0;
+}
+.cvp-score-ring svg { overflow: visible; }
+.cvp-score-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.cvp-score-ring-val {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-teal);
+  line-height: 1;
+}
+.cvp-score-ring-sub {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+.cvp-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+}
+.cvp-tag {
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 20px;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  color: var(--color-text-secondary);
+  padding: 0.18rem 0.6rem;
+}
+.cvp-tag--teal {
+  background: rgba(0,230,210,0.08);
+  border-color: rgba(0,230,210,0.3);
+  color: var(--color-teal);
+}
+.cvp-contact-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.cvp-contact-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+}
+.cvp-contact-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--color-teal-dim);
+}
+
+/* ── Right content panels ── */
+.cvp-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Generic panel card */
+.cvp-card {
+  background: var(--color-black-mid);
+  border: 1px solid var(--color-black-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.cvp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--color-black-border);
+}
+.cvp-card-title {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-text-primary);
+}
+.cvp-card-body {
+  padding: 1rem;
+}
+
+/* ── Chart row (radar + bar + timeline) ── */
+.cvp-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 960px) {
+  .cvp-charts-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .cvp-charts-row { grid-template-columns: 1fr; }
+}
+
+/* ── Skill bar ── */
+.cvp-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.cvp-skill-name {
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+  width: 130px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}
+.cvp-skill-track {
+  flex: 1;
+  height: 5px;
+  background: var(--color-black-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cvp-skill-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-teal);
+  transition: width 0.6s ease;
+}
+.cvp-skill-pct {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--color-teal);
+  width: 32px;
+  text-align: right;
+}
+
+/* ── Experience timeline ── */
+.cvp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 20px;
+}
+.cvp-timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: var(--color-black-border);
+}
+.cvp-tl-item {
+  position: relative;
+  padding: 0 0 1rem 1rem;
+}
+.cvp-tl-dot {
+  position: absolute;
+  left: -14px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-teal);
+  border: 2px solid var(--color-black-mid);
+  box-shadow: 0 0 8px rgba(0,230,210,0.4);
+}
+.cvp-tl-date {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+.cvp-tl-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+.cvp-tl-company {
+  font-size: 0.62rem;
+  color: var(--color-teal-dim);
+  margin-bottom: 4px;
+}
+.cvp-tl-desc {
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+/* ── Education items ── */
+.cvp-edu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.cvp-edu-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+.cvp-edu-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+.cvp-edu-degree {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 2px;
+}
+.cvp-edu-school {
+  font-size: 0.62rem;
+  color: var(--color-teal-dim);
+  margin-bottom: 2px;
+}
+.cvp-edu-year {
+  font-size: 0.58rem;
+  color: var(--color-text-muted);
+}
+
+/* ── Keyword chip cloud ── */
+.cvp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.cvp-chip {
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  padding: 0.22rem 0.65rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cvp-chip:hover {
+  border-color: rgba(0,230,210,0.4);
+  color: var(--color-teal);
+}
+.cvp-chip--highlight {
+  background: rgba(0,230,210,0.06);
+  border-color: rgba(0,230,210,0.3);
+  color: var(--color-teal);
+}
+
+/* ── Stat strip ── */
+.cvp-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+@media (max-width: 640px) {
+  .cvp-stat-strip { grid-template-columns: repeat(2, 1fr); }
+}
+.cvp-stat-cell {
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.cvp-stat-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-teal);
+  line-height: 1;
+}
+.cvp-stat-lbl {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-top: 0.3rem;
+}
+
+/* ── Language / certification badges ── */
+.cvp-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.cvp-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--color-black-light);
+  border: 1px solid var(--color-black-border);
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.62rem;
+  color: var(--color-text-secondary);
+}
+.cvp-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-teal);
+  flex-shrink: 0;
+}
+
+/* ── Action bar ── */
+.cvp-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.cvp-action-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Processing / loading state ── */
+.cvp-processing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.cvp-processing-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--color-black-border);
+  border-top-color: var(--color-teal);
+  border-radius: 50%;
+  animation: cvp-spin 0.8s linear infinite;
+}
+@keyframes cvp-spin { to { transform: rotate(360deg); } }
+.cvp-processing-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-primary);
+}
+.cvp-processing-sub {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+.cvp-processing-bar-wrap {
+  width: 280px;
+  height: 4px;
+  background: var(--color-black-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cvp-processing-bar {
+  height: 100%;
+  background: var(--color-teal);
+  border-radius: 2px;
+  animation: cvp-progress 2.4s ease-in-out forwards;
+}
+@keyframes cvp-progress {
+  0%   { width: 0%; }
+  40%  { width: 55%; }
+  80%  { width: 82%; }
+  100% { width: 98%; }
+}
+.cvp-processing-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 280px;
+}
+.cvp-processing-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.62rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+}
+.cvp-processing-step.done { color: var(--color-teal); }
+.cvp-step-check { font-size: 0.7rem; }
