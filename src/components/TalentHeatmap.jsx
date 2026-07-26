@@ -53,18 +53,16 @@ const HeatLayer = ({ points }) => {
     }
 
     layerRef.current = L.heatLayer(points, {
-      radius:     28,
-      blur:       20,
+      radius:     10,   // tight spot — no wide spread
+      blur:       8,    // minimal feather at edge
       maxZoom:    6,
       max:        1.0,
-      minOpacity: 0.45,
+      minOpacity: 0.7,
       gradient: {
-        0.0: '#0a0a14',
-        0.3: '#002040',
-        0.5: '#004466',
-        0.65: '#00b8a9',   // teal-dim
-        0.8:  '#00e6d2',   // teal
-        1.0:  '#ffb347',   // amber for peak clusters
+        0.0:  'rgba(0,0,0,0)',     // transparent core base
+        0.4:  '#00b8a9',           // teal-dim inner ring
+        0.75: '#00e6d2',           // teal peak
+        1.0:  '#00e6d2',           // solid teal at max
       },
     }).addTo(map)
 

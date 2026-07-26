@@ -82,22 +82,28 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
   const pendingCandidates  = candidates.filter(c => c.jobApplicationStatus === 'not_responded')
   const acceptedCount      = acceptedCandidates.length
 
-  // Map jobApplicationStatus to visual style matching reference
+  // Card visual style by status
+  // accepted  → green border + glow
+  // not_responded → grey/dimmed
   const cardStyle = (c) => {
     if (c.jobApplicationStatus === 'accepted') return {
-      border:   '1px solid oklch(70% 0.17 145 / 0.85)',
-      boxShadow:'0 0 16px oklch(65% 0.2 145 / 0.45)',
-      ringColor:'oklch(72% 0.17 145)',
-      chartColor:'oklch(70% 0.17 145)',
-      isLocked: false, isNamed: true,
+      border:     '1px solid oklch(68% 0.18 145 / 0.9)',
+      baseShadow: '0 0 14px oklch(65% 0.2 145 / 0.35)',
+      ringColor:  'oklch(70% 0.17 145)',
+      chartColor: 'oklch(70% 0.17 145)',
+      nameColor:  'oklch(90% 0.06 145)',
+      opacity:    1,
+      isGreen:    true,
     }
-    // not_responded — locked / grey
+    // not_responded — greyed out
     return {
-      border:   '1px solid oklch(45% 0.16 195 / 0.25)',
-      boxShadow:'none',
-      ringColor:'oklch(40% 0.02 250)',
-      chartColor:'oklch(50% 0.04 250)',
-      isLocked: true, isNamed: false,
+      border:     '1px solid oklch(35% 0.04 250 / 0.5)',
+      baseShadow: 'none',
+      ringColor:  'oklch(38% 0.02 250)',
+      chartColor: 'oklch(42% 0.03 250)',
+      nameColor:  'oklch(52% 0.02 250)',
+      opacity:    0.55,
+      isGreen:    false,
     }
   }
 
@@ -217,26 +223,8 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
         </div>
       </div>
 
-      {/* ── BODY: icon rail + matrix + monitor ── */}
+      {/* ── BODY: matrix + monitor ── */}
       <div style={{ display:'flex', flex:1 }}>
-
-        {/* ICON RAIL */}
-        <div style={{
-          width:40, flexShrink:0,
-          background:'oklch(13% 0.025 250)',
-          borderRight:'1px solid oklch(45% 0.16 195 / 0.3)',
-          display:'flex', flexDirection:'column', alignItems:'center',
-          gap:18, padding:'14px 0', fontSize:15,
-        }}>
-          {['⌂','○','≡','◈'].map((ic,i) => (
-            <span key={i} className="mmc-rail" style={{ color: i===0?'oklch(72% 0.15 195)':'oklch(55% 0.02 250)', cursor:'pointer' }}>{ic}</span>
-          ))}
-          <div style={{ flex:1 }}/>
-          {['⊞','◉'].map((ic,i)=>(
-            <span key={i} className="mmc-rail" style={{ color:'oklch(55% 0.02 250)', cursor:'pointer' }}>{ic}</span>
-          ))}
-          <span style={{ fontSize:7, color:'oklch(55% 0.02 250)', writingMode:'vertical-rl', letterSpacing:'0.1em' }}>ICAW</span>
-        </div>
 
         {/* ── MATCHING MATRIX (centre) ── */}
         <div style={{ flex:1, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, minWidth:0 }}>
@@ -261,12 +249,20 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
               const st = cardStyle(c)
               const isSelected = selectedCandidate?.id === c.id
               const seed = idx * 3
-              const awaiting = c.jobApplicationStatus === 'not_responded' && idx % 4 === 1
+              // neon teal glow on selected; green ambient on accepted; nothing on grey
+              const boxShadow = isSelected
+                ? '0 0 0 2px #00e6d2, 0 0 18px #00e6d2, 0 0 36px rgba(0,230,210,0.45)'
+                : st.baseShadow
               return (
                 <div
                   key={c.id}
-                  className={`mmc-card${isSelected?' mmc-card--sel':''}`}
-                  style={{ border: st.border, boxShadow: isSelected ? '0 0 0 2px oklch(70% 0.17 145)' : st.boxShadow }}
+                  className="mmc-card"
+                  style={{
+                    border: st.border,
+                    boxShadow,
+                    opacity: st.opacity,
+                    transition: 'box-shadow 0.2s ease, opacity 0.2s ease',
+                  }}
                   onClick={() => setSelectedCandidate(isSelected ? null : c)}
                 >
                   {/* Avatar row */}
@@ -274,59 +270,60 @@ const MatchingMatrixView = ({ job, onBack, onClose }) => {
                     <div style={{
                       width:30, height:30, borderRadius:'50%',
                       border:`1.5px solid ${st.ringColor}`,
-                      background:'oklch(24% 0.02 250)',
+                      background:'oklch(22% 0.02 250)',
                       display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:13, fontWeight:800,
-                      color: st.isNamed ? 'oklch(88% 0.03 195)' : 'oklch(65% 0.02 250)',
+                      fontSize:12, fontWeight:800,
+                      color: st.isGreen ? 'oklch(88% 0.03 195)' : 'oklch(55% 0.02 250)',
                     }}>
                       {c.initials}
                     </div>
-                    <span style={{ fontSize:10, color: st.isLocked ? 'oklch(45% 0.02 250)' : 'oklch(70% 0.15 195)' }}>
-                      {st.isLocked ? '🔒' : '✓'}
-                    </span>
+                    {/* status dot */}
+                    <div style={{
+                      width:7, height:7, borderRadius:'50%', marginTop:2,
+                      background: st.isGreen ? 'oklch(68% 0.18 145)' : 'oklch(38% 0.03 250)',
+                      boxShadow: st.isGreen ? '0 0 6px oklch(65% 0.2 145)' : 'none',
+                    }}/>
                   </div>
 
-                  {/* Name / status text */}
-                  {st.isNamed ? (
-                    <div>
-                      <div style={{ fontSize:10, fontWeight:800, color:'oklch(92% 0.03 145)', lineHeight:1.2 }}>
-                        {c.name} ({Math.round(c.overallScore*10)}/{rating(c.overallScorePercent)})
-                      </div>
-                      <div style={{ fontSize:8.5, color:st.chartColor, fontWeight:700, marginTop:1 }}>
-                        {c.overallScorePercent}% MATCH [UNDERWRITING]
-                      </div>
+                  {/* Name — always shown */}
+                  <div>
+                    <div style={{ fontSize:9.5, fontWeight:800, color: st.nameColor, lineHeight:1.25 }}>
+                      {c.name}
                     </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontSize:8, color: awaiting ? 'oklch(75% 0.15 80)' : 'oklch(58% 0.02 250)', fontWeight:700, lineHeight:1.25 }}>
-                        {awaiting ? "AWAITING APPLICANT 'ACCEPT' (NOTIFIED 2m AGO)" : 'PROFILE: #A4B7C9 [LOCKED]'}
-                      </div>
-                      <div style={{ fontSize:8, color:'oklch(52% 0.02 250)', fontWeight:700, marginTop:1 }}>
-                        98% MATCH [UNDERWRITING]
-                      </div>
+                    <div style={{ fontSize:8, color: st.chartColor, fontWeight:700, marginTop:1 }}>
+                      {c.overallScorePercent}% · {rating(c.overallScorePercent)}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Status badge */}
+                  <div style={{
+                    fontSize:7, fontWeight:800, letterSpacing:'0.07em',
+                    color: st.isGreen ? 'oklch(70% 0.17 145)' : 'oklch(44% 0.03 250)',
+                    textTransform:'uppercase',
+                  }}>
+                    {st.isGreen ? '● ACCEPTED' : '○ PENDING'}
+                  </div>
 
                   {/* Sparklines */}
-                  <div style={{ marginTop:'auto', display:'flex', gap:6 }}>
+                  <div style={{ marginTop:'auto', display:'flex', gap:5 }}>
                     <div style={{ flex:1 }}>
-                      <svg viewBox="0 0 40 16" width="100%" height="16" preserveAspectRatio="none">
-                        <polyline points={spark(seed+1, st.isNamed)} fill="none" stroke={st.chartColor} strokeWidth="1.5"/>
+                      <svg viewBox="0 0 40 16" width="100%" height="14" preserveAspectRatio="none">
+                        <polyline points={spark(seed+1, st.isGreen)} fill="none" stroke={st.chartColor} strokeWidth="1.5"/>
                       </svg>
-                      <div style={{ fontSize:7, color:'oklch(52% 0.02 250)', letterSpacing:'0.03em' }}>VELOCITY</div>
+                      <div style={{ fontSize:7, color:'oklch(44% 0.02 250)', letterSpacing:'0.03em' }}>VELOCITY</div>
                     </div>
                     <div style={{ flex:1 }}>
-                      <svg viewBox="0 0 40 16" width="100%" height="16" preserveAspectRatio="none">
+                      <svg viewBox="0 0 40 16" width="100%" height="14" preserveAspectRatio="none">
                         <polyline points={spark(seed+2, true)} fill="none" stroke={st.chartColor} strokeWidth="1.5"/>
                       </svg>
-                      <div style={{ fontSize:7, color:'oklch(52% 0.02 250)', letterSpacing:'0.03em' }}>LEARNING SLOPE</div>
+                      <div style={{ fontSize:7, color:'oklch(44% 0.02 250)', letterSpacing:'0.03em' }}>SLOPE</div>
                     </div>
                   </div>
 
-                  {/* Reveal CTA — only on accepted */}
-                  {st.isNamed && c.jobApplicationStatus === 'accepted' && (
+                  {/* Reveal CTA — accepted only */}
+                  {st.isGreen && (
                     <div className="mmc-reveal" onClick={e => { e.stopPropagation(); setSelectedCandidate(c) }}>
-                      REVEAL AND UNDERWRITE
+                      REVEAL &amp; UNDERWRITE
                     </div>
                   )}
                 </div>
