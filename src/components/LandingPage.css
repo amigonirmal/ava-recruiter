@@ -3667,3 +3667,396 @@
   outline: 2px solid var(--slider-color, #00e6d2);
   outline-offset: 2px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CANDIDATE SCORECARD MODAL  (sc-*)
+   Full-screen overlay with scrollable ranked table
+══════════════════════════════════════════════════════════════════════════ */
+
+/* Backdrop */
+.sc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+
+/* Modal card */
+.sc-modal {
+  width: 100%;
+  max-width: 1320px;
+  background: oklch(13% 0.025 250);
+  border: 1px solid oklch(45% 0.16 195 / 0.5);
+  border-radius: 6px;
+  box-shadow: 0 0 60px oklch(60% 0.22 195 / 0.2), 0 0 0 1px oklch(60% 0.2 195 / 0.1);
+  display: flex;
+  flex-direction: column;
+  font-family: 'JetBrains Mono', 'Satoshi', ui-monospace, monospace;
+  color: oklch(88% 0.02 250);
+  font-size: 11px;
+  overflow: hidden;
+}
+
+/* Header */
+.sc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  background: oklch(15% 0.03 250);
+  border-bottom: 1px solid oklch(45% 0.16 195 / 0.45);
+  flex-wrap: wrap;
+}
+.sc-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sc-header-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: oklch(72% 0.17 145);
+}
+.sc-header-sub {
+  font-size: 10px;
+  color: oklch(55% 0.02 250);
+  letter-spacing: 0.05em;
+}
+.sc-close-btn {
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: oklch(60% 0.02 250);
+  background: oklch(18% 0.03 250);
+  border: 1px solid oklch(35% 0.04 250);
+  border-radius: 3px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.sc-close-btn:hover {
+  color: oklch(75% 0.17 145);
+  border-color: oklch(50% 0.17 145 / 0.6);
+}
+
+/* Weight legend */
+.sc-weight-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: oklch(11% 0.02 250);
+  border-bottom: 1px solid oklch(28% 0.03 250);
+  flex-wrap: wrap;
+}
+.sc-wl-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: oklch(52% 0.02 250);
+  letter-spacing: 0.07em;
+  margin-right: 4px;
+}
+.sc-wl-chip {
+  font-size: 9px;
+  font-weight: 800;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 2px 7px;
+  letter-spacing: 0.05em;
+  background: transparent;
+}
+.sc-wl-note {
+  font-size: 9px;
+  color: oklch(42% 0.02 250);
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
+/* Scrollable table container */
+.sc-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 300px);
+  min-height: 200px;
+}
+
+/* Table */
+.sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+/* Table header */
+.sc-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: oklch(16% 0.03 250);
+  color: oklch(58% 0.02 250);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid oklch(30% 0.04 250);
+  white-space: nowrap;
+}
+.sc-th-rank   { width: 36px; text-align: center; }
+.sc-th-name   { min-width: 160px; }
+.sc-th-org    { min-width: 150px; }
+.sc-th-exp    { width: 72px; }
+.sc-th-score  { width: 80px; text-align: center; }
+.sc-th-match  { width: 90px; }
+.sc-th-rating { width: 60px; text-align: center; }
+.sc-th-status { width: 90px; }
+.sc-th-rec    { min-width: 160px; }
+
+/* Table rows */
+.sc-row {
+  border-bottom: 1px solid oklch(22% 0.025 250);
+  transition: background 0.12s;
+}
+.sc-row:hover {
+  background: oklch(17% 0.03 250);
+}
+.sc-row--accepted {
+  background: oklch(14% 0.025 195 / 0.5);
+}
+.sc-row--accepted:hover {
+  background: oklch(17% 0.03 195 / 0.6);
+}
+
+/* Table cells */
+.sc-td {
+  padding: 9px 10px;
+  vertical-align: middle;
+}
+.sc-td-rank   { text-align: center; }
+.sc-td-score  { text-align: center; }
+.sc-td-rating { text-align: center; }
+
+/* Rank badge */
+.sc-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  background: oklch(20% 0.03 250);
+  border: 1px solid oklch(35% 0.04 250);
+  color: oklch(60% 0.02 250);
+}
+.sc-rank-badge--gold {
+  background: oklch(72% 0.15 80 / 0.2);
+  border-color: oklch(72% 0.15 80);
+  color: oklch(72% 0.15 80);
+}
+
+/* Name cell */
+.sc-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sc-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid;
+  background: oklch(20% 0.03 250);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.sc-cand-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: oklch(90% 0.03 195);
+  white-space: nowrap;
+}
+.sc-cand-edu {
+  font-size: 8.5px;
+  color: oklch(52% 0.02 250);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* Org cell */
+.sc-org-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: oklch(75% 0.03 250);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+.sc-org-tenure {
+  font-size: 8.5px;
+  color: oklch(48% 0.02 250);
+  margin-top: 2px;
+}
+
+/* Experience cell */
+.sc-td-exp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sc-exp-total {
+  font-size: 11px;
+  font-weight: 800;
+  color: oklch(80% 0.02 250);
+}
+.sc-exp-rel {
+  font-size: 8.5px;
+  color: oklch(52% 0.02 250);
+}
+
+/* Per-criterion score cell */
+.sc-score-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.sc-score-num {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.sc-score-bar-track {
+  width: 48px;
+  height: 3px;
+  background: oklch(22% 0.02 250);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.sc-score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+.sc-score-wt {
+  font-size: 7.5px;
+  color: oklch(48% 0.02 250);
+  letter-spacing: 0.04em;
+}
+
+/* Match % cell */
+.sc-match-pct {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.sc-match-bar-track {
+  width: 70px;
+  height: 3px;
+  background: oklch(22% 0.02 250);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.sc-match-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+.sc-completeness {
+  font-size: 8px;
+  color: oklch(72% 0.15 80);
+  margin-top: 2px;
+}
+
+/* Rating badge */
+.sc-rating-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid;
+  border-radius: 3px;
+  padding: 2px 8px;
+  letter-spacing: 0.06em;
+}
+
+/* Status pill */
+.sc-status-pill {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: oklch(48% 0.03 250);
+  border: 1px solid oklch(32% 0.03 250);
+  border-radius: 3px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+.sc-status-pill--green {
+  color: oklch(70% 0.17 145);
+  border-color: oklch(55% 0.17 145 / 0.5);
+  background: oklch(68% 0.17 145 / 0.08);
+}
+
+/* Recommendation cell */
+.sc-rec-text {
+  font-size: 10px;
+  color: oklch(68% 0.02 250);
+  line-height: 1.4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sc-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.sc-flag-chip {
+  font-size: 7.5px;
+  font-weight: 700;
+  background: oklch(18% 0.03 250);
+  border: 1px solid oklch(40% 0.12 80 / 0.5);
+  border-radius: 2px;
+  padding: 1px 5px;
+  color: oklch(72% 0.12 80);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Footer */
+.sc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: oklch(11% 0.02 250);
+  border-top: 1px solid oklch(28% 0.03 250);
+  flex-wrap: wrap;
+}
+.sc-footer-note {
+  font-size: 9px;
+  color: oklch(42% 0.02 250);
+  letter-spacing: 0.04em;
+}

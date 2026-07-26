@@ -73,11 +73,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [isClosed, setIsClosed]                   = useState(false)
   const [loading, setLoading]                     = useState(!candidatesData)
   const [showHCMT, setShowHCMT]                   = useState(false)
+  const [showScorecard, setShowScorecard]         = useState(false)
 
-  // JD weights — set via HCMT sliders; default = equal weighting
-  const [jdWeights, setJdWeights] = useState(
-    Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, 2]))  // equal weight 2/10 each
-  )
+  // JD weights — set via HCMT sliders; default matches scorecard spec:
+  // pipeline:9, scalability:8, gov:8, sovereignty:9, privacy:10
+  // → normalised: 9+8+8+9+10=44 → 20.5/18.2/18.2/20.5/22.7%  (privacy dominant)
+  const [jdWeights, setJdWeights] = useState({
+    pipeline: 9, scalability: 8, gov: 8, sovereignty: 9, privacy: 10,
+  })
 
   // Fetch live candidate data from the API every time the matrix opens
   useEffect(() => {
@@ -204,6 +207,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {/* VIEW SCORECARD button */}
+          <button
+            className="mm-back-btn-chrome"
+            style={{ color:'oklch(70% 0.17 145)', borderColor:'oklch(50% 0.17 145 / 0.6)', letterSpacing:'0.07em' }}
+            onClick={() => setShowScorecard(true)}
+          >
+            ◈ VIEW SCORECARD
+          </button>
           {/* EDIT JD button — opens HCMTView */}
           <button
             className="mm-back-btn-chrome"
@@ -670,6 +681,193 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
           })()}
         </div>
       </div>
+
+      {/* ── SCORECARD MODAL OVERLAY ── */}
+      {showScorecard && (
+        <div className="sc-overlay" onClick={() => setShowScorecard(false)}>
+          <div className="sc-modal" onClick={e => e.stopPropagation()}>
+
+            {/* Modal header */}
+            <div className="sc-header">
+              <div className="sc-header-left">
+                <span className="sc-header-title">◈ CANDIDATE SCORECARD</span>
+                <span className="sc-header-sub">
+                  {job?.title || 'Senior Data Engineer'} &nbsp;·&nbsp; {rankedList.length} CANDIDATES &nbsp;·&nbsp; RANKED BY WEIGHTED MATCH
+                </span>
+              </div>
+              <button className="sc-close-btn" onClick={() => setShowScorecard(false)}>✕ CLOSE</button>
+            </div>
+
+            {/* Weight legend row */}
+            <div className="sc-weight-legend">
+              <span className="sc-wl-label">ACTIVE WEIGHTS:</span>
+              {HCMT_CRITERIA.map(c => (
+                <span key={c.key} className="sc-wl-chip" style={{ borderColor: c.color, color: c.color }}>
+                  {c.short} {(rankResult.weights_used[c.key] * 100).toFixed(1)}%
+                </span>
+              ))}
+              <span className="sc-wl-note">· adjust via ✎ EDIT JD</span>
+            </div>
+
+            {/* Scrollable table */}
+            <div className="sc-table-wrap">
+              <table className="sc-table">
+                <thead>
+                  <tr>
+                    <th className="sc-th sc-th-rank">#</th>
+                    <th className="sc-th sc-th-name">CANDIDATE</th>
+                    <th className="sc-th sc-th-org">ORGANISATION</th>
+                    <th className="sc-th sc-th-exp">EXP</th>
+                    {HCMT_CRITERIA.map(c => (
+                      <th key={c.key} className="sc-th sc-th-score" style={{ color: c.color }}>
+                        {c.short}
+                      </th>
+                    ))}
+                    <th className="sc-th sc-th-match">MATCH %</th>
+                    <th className="sc-th sc-th-rating">RATING</th>
+                    <th className="sc-th sc-th-status">STATUS</th>
+                    <th className="sc-th sc-th-rec">RECOMMENDATION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankedList.map((rc) => {
+                    const c = rc._candidate
+                    const isAccepted = c.jobApplicationStatus === 'accepted'
+                    const matchCol = rc.match_percentage >= 70
+                      ? '#00e6d2'
+                      : rc.match_percentage >= 45 ? '#f59e0b' : '#ff3b4e'
+                    const ratingLabel = rc.match_percentage >= 90 ? 'AA+' : rc.match_percentage >= 80 ? 'AA' : rc.match_percentage >= 70 ? 'A+' : rc.match_percentage >= 55 ? 'A' : 'B'
+                    return (
+                      <tr key={rc.candidate_id} className={`sc-row${isAccepted ? ' sc-row--accepted' : ''}`}>
+
+                        {/* Rank */}
+                        <td className="sc-td sc-td-rank">
+                          <span className={`sc-rank-badge${rc.rank === 1 ? ' sc-rank-badge--gold' : ''}`}>
+                            {rc.rank}
+                          </span>
+                        </td>
+
+                        {/* Name + initials */}
+                        <td className="sc-td sc-td-name">
+                          <div className="sc-name-cell">
+                            <div className="sc-avatar" style={{
+                              borderColor: isAccepted ? 'rgba(0,230,210,0.5)' : 'rgba(120,120,150,0.3)',
+                              color: isAccepted ? '#00e6d2' : '#666',
+                            }}>{c.initials}</div>
+                            <div>
+                              <div className="sc-cand-name">{c.name}</div>
+                              {c.education?.degree && (
+                                <div className="sc-cand-edu">{c.education.degree}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Organisation + tenure */}
+                        <td className="sc-td sc-td-org">
+                          <div className="sc-org-name">{c.currentOrganization?.name || '—'}</div>
+                          <div className="sc-org-tenure">{c.currentOrganization?.tenure || ''}</div>
+                        </td>
+
+                        {/* Experience */}
+                        <td className="sc-td sc-td-exp">
+                          <span className="sc-exp-total">{c.experience?.totalYears ?? '—'}yr</span>
+                          <span className="sc-exp-rel">{c.experience?.relevantYears ?? '?'}yr rel.</span>
+                        </td>
+
+                        {/* Per-criterion score cells */}
+                        {HCMT_CRITERIA.map(crit => {
+                          const raw = c.scores?.[crit.key]
+                          const pct = raw != null ? (raw / 10) * 100 : 0
+                          const bd  = rc.breakdown?.find(b => b.parameter === crit.label)
+                          return (
+                            <td key={crit.key} className="sc-td sc-td-score">
+                              <div className="sc-score-cell">
+                                <div className="sc-score-num" style={{
+                                  color: raw == null ? '#555' : raw >= 8 ? crit.color : raw >= 5 ? '#f59e0b' : '#ff3b4e',
+                                }}>
+                                  {raw != null ? `${raw}/10` : '—'}
+                                </div>
+                                <div className="sc-score-bar-track">
+                                  <div className="sc-score-bar-fill" style={{
+                                    width: `${pct}%`,
+                                    background: raw == null ? '#333' : raw >= 8 ? crit.color : raw >= 5 ? '#f59e0b' : '#ff3b4e',
+                                  }}/>
+                                </div>
+                                {bd && (
+                                  <div className="sc-score-wt">
+                                    +{bd.contribution_pct.toFixed(1)}pt
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          )
+                        })}
+
+                        {/* Match % */}
+                        <td className="sc-td sc-td-match">
+                          <div className="sc-match-pct" style={{ color: matchCol }}>
+                            {rc.match_percentage.toFixed(1)}%
+                          </div>
+                          <div className="sc-match-bar-track">
+                            <div className="sc-match-bar-fill" style={{
+                              width: `${rc.match_percentage}%`,
+                              background: matchCol,
+                            }}/>
+                          </div>
+                          {rc.data_completeness !== 'complete' && (
+                            <div className="sc-completeness">⚠ partial</div>
+                          )}
+                        </td>
+
+                        {/* Rating badge */}
+                        <td className="sc-td sc-td-rating">
+                          <span className="sc-rating-badge" style={{
+                            background: ratingLabel === 'AA+' ? 'rgba(0,230,210,0.12)' : ratingLabel === 'AA' ? 'rgba(0,200,180,0.1)' : 'rgba(120,120,150,0.1)',
+                            borderColor: ratingLabel === 'AA+' ? 'rgba(0,230,210,0.5)' : ratingLabel === 'AA' ? 'rgba(0,200,180,0.4)' : 'rgba(120,120,150,0.3)',
+                            color: ratingLabel === 'AA+' ? '#00e6d2' : ratingLabel === 'AA' ? '#00b8a9' : '#888',
+                          }}>{ratingLabel}</span>
+                        </td>
+
+                        {/* Application status */}
+                        <td className="sc-td sc-td-status">
+                          <span className={`sc-status-pill${isAccepted ? ' sc-status-pill--green' : ''}`}>
+                            {isAccepted ? '● ACCEPTED' : '○ PENDING'}
+                          </span>
+                        </td>
+
+                        {/* Recommendation */}
+                        <td className="sc-td sc-td-rec">
+                          <div className="sc-rec-text">
+                            {c.recommendation || '—'}
+                          </div>
+                          {c.flags?.length > 0 && (
+                            <div className="sc-flags">
+                              {c.flags.slice(0,2).map(f => (
+                                <span key={f} className="sc-flag-chip">{f}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer */}
+            <div className="sc-footer">
+              <span className="sc-footer-note">
+                Scores are 0–10 per criterion · Match % = weighted sum using normalised JD weights · Rankings use standard competition ranking (1224)
+              </span>
+              <button className="sc-close-btn" onClick={() => setShowScorecard(false)}>✕ CLOSE SCORECARD</button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -751,9 +949,10 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
   const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
 
   // ── Live slider state — seeded from initialWeights if provided ────────
+  // Default weights per spec: pipeline=9, scalability=8, gov=8, sovereignty=9, privacy=10
   const [sliderVals, setSliderVals] = useState(() => {
     if (initialWeights) return { ...initialWeights }
-    return Object.fromEntries(HCMT_CRITERIA.map(c => [c.key, c.key === 'privacy' ? 2 : c.key === 'sovereignty' ? 10 : c.key === 'pipeline' ? 9 : 6]))
+    return { pipeline: 9, scalability: 8, gov: 8, sovereignty: 9, privacy: 10 }
   })
   const setVal = (key, v) => setSliderVals(prev => ({ ...prev, [key]: v }))
 
