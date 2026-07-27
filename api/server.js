@@ -441,21 +441,27 @@ app.post('/api/jobs', async (req, res) => {
   }
 
   const newJob = {
-    id:           body.id           || randomUUID(),
-    title:        body.title,
-    dept:         body.dept         || body.department || '',
-    location:     body.location     || '',
-    type:         body.type         || 'Full-time',
-    seniority:    body.seniority    || 'Mid',
-    urgency:      body.urgency      || 'Medium',
-    salary:       body.salary       || '',
-    description:  body.description  || '',
-    requirements: body.requirements || '',
-    niceToHave:   body.niceToHave   || '',
-    closingDate:  body.closingDate  || '',
-    applicants:   0,
-    matched:      0,
-    postedAt:     new Date().toISOString(),
+    id:                 body.id           || randomUUID(),
+    title:              body.title,
+    dept:               body.dept         || body.department || '',
+    location:           body.location     || '',
+    type:               body.type         || 'Full-time',
+    seniority:          body.seniority    || 'Mid',
+    urgency:            body.urgency      || 'Medium',
+    salary:             body.salary       || '',
+    description:        body.description  || '',
+    requirements:       body.requirements || '',
+    niceToHave:         body.niceToHave   || '',
+    closingDate:        body.closingDate  || '',
+    // Extended HCMT fields — populated when job is posted via the visual HCMT flow
+    jobRef:             body.jobRef       || '',
+    reportsTo:          body.reportsTo    || '',
+    proofOfWork:        body.proofOfWork  || '',
+    compensation:       body.compensation || '',
+    competencyWeights:  body.competencyWeights || null,
+    applicants:         0,
+    matched:            0,
+    postedAt:           new Date().toISOString(),
   }
 
   const jobs = readJobs()

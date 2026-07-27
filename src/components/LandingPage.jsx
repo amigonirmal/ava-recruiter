@@ -975,6 +975,7 @@ const HCMTRadar = ({ values }) => {
 
 // ── JDVisualView — shown from PostJobView after uploading a JD file ───────────
 // Uses the same HCMTView shell but in "post" mode with a file name in the title.
+// onPost now receives (sliderVals) so the weights can be persisted.
 const JDVisualView = ({ file, onPost, onBack }) => {
   return (
     <HCMTView
@@ -982,7 +983,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
       jobTitle="SENIOR CLOUD DATA ENGINEER"
       onBack={onBack}
       actionLabel="POST ROLE & START MATCHING"
-      onAction={onPost}
+      onAction={onPost}   // called with (sliderVals) from HCMTView
     />
   )
 }
@@ -1498,12 +1499,25 @@ const PostJobView = ({ onBack, onJobPosted }) => {
     <JDVisualView
       file={uploadedFile}
       onBack={() => { setUploaded(null); setMode(null) }}
-      onPost={async () => {
+      onPost={async (sliderVals) => {
         try {
           const saved = await postJob({
-            title: uploadedFile.name.replace(/\.[^.]+$/, ''),
-            dept: '',
-            urgency: 'Medium',
+            title:              'Senior Cloud Data Engineer',
+            dept:               'Data Engineering',
+            location:           'London, UK (Hybrid)',
+            type:               'Full-time',
+            seniority:          'Senior',
+            urgency:            'High',
+            salary:             '£150,000 – £195,000 + equity',
+            description:        `We're hiring a Senior Cloud Data Engineer to own the architecture, scalability, and governance of our cloud data pipelines. This role sits at the intersection of platform engineering and data protection: you'll design systems that move and transform data reliably at scale, while ensuring that data residency, access control, and privacy-by-design are built into the architecture rather than bolted on afterward. You'll work closely with the Head of Data Platform and cross-functionally with Security, Compliance, and Product Engineering.`,
+            requirements:       `• 7+ years in data engineering, with at least 3 years designing cloud-native pipeline architecture in production at scale.\n• Deep hands-on experience with a major cloud provider (AWS preferred); cloud architecture certification required.\n• Demonstrated track record of leading scale migrations — cite specific systems taken from one order of magnitude to the next.\n• Working knowledge of data governance frameworks (lineage, cataloging, access control) in a regulated or multi-region environment.\n• Practical experience implementing data sovereignty controls (region-locked storage/processing, cross-border transfer restrictions).\n• Strong grounding in privacy engineering principles and their application to real pipeline design, not just policy awareness.`,
+            niceToHave:         `• Prior experience in a HIPAA- or GDPR-regulated environment.\n• Experience mentoring or technically leading a team of 3+ engineers.\n• Open-source or public contribution history demonstrating performance optimization and caching work.`,
+            closingDate:        '',
+            jobRef:             'AVA-SDE-CLOUD-2607',
+            reportsTo:          'Head of Data Platform',
+            proofOfWork:        `• GitHub history showing performance optimization and caching work.\n• Jira or equivalent project history evidencing a Tech Lead role on a scale migration.\n• Current cloud architecture certification (AWS Solutions Architect or equivalent Performance Specialist track).`,
+            compensation:       `• Base salary: £150,000 – £195,000, based on experience and interview performance.\n• Equity grant, reviewed annually.\n• Private health cover, pension contribution matching, and 25 days annual leave plus bank holidays.\n• Hybrid working — 2 days per week on-site at our London office.\n• Professional development budget for certifications and conference attendance.`,
+            competencyWeights:  sliderVals || { pipeline: 9, scalability: 8, gov: 8, sovereignty: 9, privacy: 10 },
           })
           onJobPosted?.(saved)
         } catch (err) {
