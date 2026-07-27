@@ -303,6 +303,69 @@ app.get('/api/jobs', async (_req, res) => {
   res.json(readJobs())
 })
 
+// GET /api/profiles/:id — read a single candidate profile JSON from GCS
+app.get('/api/profiles/:id', async (req, res) => {
+  const { id } = req.params
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'invalid profile id' })
+  }
+  const objectName = `${GCS_PROFILES_PREFIX}/${id}.json`
+  if (!gcsBucket) {
+    // Local dev fallback — look for profiles/ folder at repo root
+    const localPath = path.resolve(__dirname, '..', '..', 'profiles', `${id}.json`)
+    if (fs.existsSync(localPath)) {
+      try { return res.json(JSON.parse(fs.readFileSync(localPath, 'utf8'))) }
+      catch { return res.status(500).json({ error: 'failed to read local profile' }) }
+    }
+    return res.status(404).json({ error: `profile "${id}" not found` })
+  }
+  const profile = await readProfileFromGcs(objectName)
+  if (!profile) return res.status(404).json({ error: `profile "${id}" not found in GCS` })
+  res.json(profile)
+})
+
+// PATCH /api/profiles/:id/job-search/:jobId — update a candidate's job_search entry
+// Body: { "status": "Accepted", "decision_reason": "..." }
+app.patch('/api/profiles/:id/job-search/:jobId', async (req, res) => {
+  const { id, jobId } = req.params
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'invalid profile id' })
+  }
+  const { status, decision_reason } = req.body || {}
+  if (!status) return res.status(400).json({ error: 'status is required' })
+
+  const objectName = `${GCS_PROFILES_PREFIX}/${id}.json`
+
+  if (!gcsBucket) {
+    const localPath = path.resolve(__dirname, '..', '..', 'profiles', `${id}.json`)
+    if (!fs.existsSync(localPath)) return res.status(404).json({ error: `profile "${id}" not found` })
+    try {
+      const profile = JSON.parse(fs.readFileSync(localPath, 'utf8'))
+      const entry = (profile.job_search || []).find(e => e.job_id === jobId)
+      if (!entry) return res.status(404).json({ error: `job_id "${jobId}" not found in profile` })
+      entry.status = status
+      if (decision_reason !== undefined) entry.decision_reason = decision_reason
+      fs.writeFileSync(localPath, JSON.stringify(profile, null, 2))
+      return res.json(entry)
+    } catch (err) {
+      return res.status(500).json({ error: err.message })
+    }
+  }
+
+  const profile = await readProfileFromGcs(objectName)
+  if (!profile) return res.status(404).json({ error: `profile "${id}" not found in GCS` })
+
+  const entry = (profile.job_search || []).find(e => e.job_id === jobId)
+  if (!entry) return res.status(404).json({ error: `job_id "${jobId}" not found in profile` })
+
+  entry.status = status
+  if (decision_reason !== undefined) entry.decision_reason = decision_reason
+  await writeProfileToGcs(objectName, profile)
+
+  console.log(`[profiles] patched ${id} → job_search[${jobId}].status = "${status}"`)
+  res.json(entry)
+})
+
 // GET /api/candidates
 // Reads LIVE from GCS on every request (no disk cache).
 // In local dev (no GCS_BUCKET) falls back to src/data/candidates_final.json.
