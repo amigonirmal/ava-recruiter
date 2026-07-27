@@ -95,13 +95,6 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [cardFilter, setCardFilter]               = useState('All') // 'All' | 'Accepted' | 'Pending'
   const [showCloseConfirm, setShowCloseConfirm]   = useState(false)
   const [isClosing, setIsClosing]                 = useState(false)
-  const [jobDetails, setJobDetails]               = useState(() => ({
-    title: job?.title || '',
-    salary: job?.salary || '',
-    location: job?.location || '',
-    skillsText: Array.isArray(job?.skills) ? job.skills.join(', ') : '',
-  }))
-  const [isSavingJobDetails, setIsSavingJobDetails] = useState(false)
 
   // JD weights — set via HCMT sliders; default matches scorecard spec:
   // pipeline:9, scalability:8, gov:8, sovereignty:9, privacy:10
@@ -179,40 +172,6 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
 
   const liveLine  = isClosed ? 'CLOSED: Position Filled' : 'LIVE: Underwriting Phase'
   const liveColor = isClosed ? 'oklch(65% 0.02 250)' : 'oklch(70% 0.17 145)'
-  const jobSkills = jobDetails.skillsText.split(',').map(skill => skill.trim()).filter(Boolean)
-  const maxSkillCount = Math.max(jobSkills.length, 1)
-
-  useEffect(() => {
-    setJobDetails({
-      title: job?.title || '',
-      salary: job?.salary || '',
-      location: job?.location || '',
-      skillsText: Array.isArray(job?.skills) ? job.skills.join(', ') : '',
-    })
-  }, [job])
-
-  const saveJobDetails = async () => {
-    if (!job?.id) return
-    setIsSavingJobDetails(true)
-    try {
-      await patchJob(job.id, {
-        title: jobDetails.title,
-        salary: jobDetails.salary,
-        location: jobDetails.location,
-        skills: jobSkills,
-      })
-      Object.assign(job, {
-        title: jobDetails.title,
-        salary: jobDetails.salary,
-        location: jobDetails.location,
-        skills: jobSkills,
-      })
-    } catch (err) {
-      console.error('patchJob details failed:', err)
-    } finally {
-      setIsSavingJobDetails(false)
-    }
-  }
 
   // Show full HCMT edit page when requested
   if (showHCMT) return (
@@ -220,9 +179,33 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
       titleSuffix={(job?.title || 'ROLE').toUpperCase()}
       jobTitle={(job?.title || 'Senior Data Engineer').toUpperCase()}
       initialWeights={jdWeights}
+      initialJobDetails={{
+        title: job?.title || '',
+        salary: job?.salary || '',
+        location: job?.location || '',
+      }}
       onBack={() => setShowHCMT(false)}
       actionLabel="SAVE & RETURN TO MATRIX"
-      onAction={(savedWeights) => { setJdWeights(savedWeights); setShowHCMT(false) }}
+      onAction={async (savedWeights, savedJobDetails) => {
+        setJdWeights(savedWeights)
+        try {
+          await patchJob(job.id, {
+            title: savedJobDetails.title,
+            salary: savedJobDetails.salary,
+            location: savedJobDetails.location,
+            competencyWeights: savedWeights,
+          })
+          Object.assign(job, {
+            title: savedJobDetails.title,
+            salary: savedJobDetails.salary,
+            location: savedJobDetails.location,
+            competencyWeights: savedWeights,
+          })
+        } catch (err) {
+          console.error('patchJob details failed:', err)
+        }
+        setShowHCMT(false)
+      }}
     />
   )
 
@@ -266,12 +249,12 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
           <span style={{ fontSize:28, fontWeight:800, color:'oklch(72% 0.15 80)', fontFamily:'serif' }}>A</span>
           <div>
             <div style={{ fontSize:'clamp(13px,1.3vw,17px)', fontWeight:800, color:'oklch(90% 0.05 145)', letterSpacing:'0.02em' }}>
-              ACTIVE REQUISITION: <span style={{ color:'oklch(75% 0.02 250)' }}>{jobDetails.title || 'Senior Data Engineer'}</span>
+              ACTIVE REQUISITION: <span style={{ color:'oklch(75% 0.02 250)' }}>{job?.title || 'Senior Data Engineer'}</span>
             </div>
             <div style={{ fontSize:11, color:'oklch(60% 0.02 250)', letterSpacing:'0.04em', marginTop:3 }}>
               {job?.dept && <span>{job.dept} · </span>}
-              {jobDetails.location && <span>{jobDetails.location} · </span>}
-              {jobDetails.salary && <span>EST. TOTAL COMP RANGE: {jobDetails.salary} · </span>}
+              {job?.location && <span>{job.location} · </span>}
+              {job?.salary && <span>EST. TOTAL COMP RANGE: {job.salary} · </span>}
               <span style={{ color:liveColor, fontWeight:700 }}>{liveLine}</span>
             </div>
           </div>
@@ -362,52 +345,6 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
                 border:'2px solid oklch(45% 0.16 195 / 0.4)', borderTopColor:'oklch(72% 0.15 195)',
                 animation:'spin 0.7s linear infinite' }}/>
             )}
-          </div>
-
-          <div style={{
-            display:'grid',
-            gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
-            gap:12,
-            background:'oklch(14% 0.025 250)',
-            border:'1px solid oklch(45% 0.16 195 / 0.25)',
-            borderRadius:10,
-            padding:12,
-          }}>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>JOB TITLE</div>
-              <input value={jobDetails.title} onChange={e => setJobDetails(prev => ({ ...prev, title: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
-            </div>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>EST. TOTAL COMP RANGE</div>
-              <input value={jobDetails.salary} onChange={e => setJobDetails(prev => ({ ...prev, salary: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
-            </div>
-            <div style={{ display:'grid', gap:6 }}>
-              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>LOCATION</div>
-              <input value={jobDetails.location} onChange={e => setJobDetails(prev => ({ ...prev, location: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
-            </div>
-            <div style={{ display:'grid', gap:6, gridColumn:'1 / -1' }}>
-              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>SKILL SET NEEDED</div>
-              <textarea rows={3} value={jobDetails.skillsText} onChange={e => setJobDetails(prev => ({ ...prev, skillsText: e.target.value }))} placeholder="AWS, Spark, Data Governance" style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit', resize:'vertical' }} />
-            </div>
-            <div style={{ gridColumn:'1 / -1', display:'grid', gap:8 }}>
-              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>SKILL SET CHART</div>
-              <div style={{ display:'grid', gap:8 }}>
-                {jobSkills.length ? jobSkills.map((skill, index) => (
-                  <div key={skill} style={{ display:'grid', gridTemplateColumns:'160px 1fr 30px', gap:8, alignItems:'center' }}>
-                    <div style={{ color:'oklch(84% 0.02 250)', fontSize:11 }}>{skill}</div>
-                    <div style={{ height:8, background:'oklch(20% 0.02 250)', borderRadius:999, overflow:'hidden' }}>
-                      <div style={{ width:`${((maxSkillCount - index) / maxSkillCount) * 100}%`, height:'100%', background:'oklch(70% 0.17 145)' }} />
-                    </div>
-                    <div style={{ color:'oklch(60% 0.02 250)', fontSize:10, textAlign:'right' }}>{maxSkillCount - index}</div>
-                  </div>
-                )) : <div style={{ color:'oklch(60% 0.02 250)', fontSize:11 }}>Add comma-separated skills to render the chart.</div>}
-              </div>
-            </div>
-            <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end' }}>
-              <button className="mm-back-btn-chrome" onClick={saveJobDetails} disabled={isSavingJobDetails}>
-                {isSavingJobDetails ? 'SAVING…' : 'SAVE JOB DETAILS'}
-              </button>
-            </div>
           </div>
 
           {/* CARD GRID — filtered + ranked order, 6 columns */}
@@ -1068,10 +1005,14 @@ const JDVisualView = ({ file, onPost, onBack }) => {
   return (
     <HCMTView
       titleSuffix={file?.name?.toUpperCase().replace(/\.[^.]+$/, '') || 'JD UPLOAD'}
-      jobTitle="SENIOR CLOUD DATA ENGINEER"
+      initialJobDetails={{
+        title: 'SENIOR CLOUD DATA ENGINEER',
+        salary: '£150,000 – £195,000 + equity',
+        location: 'London, UK (Hybrid)',
+      }}
       onBack={onBack}
       actionLabel="POST ROLE & START MATCHING"
-      onAction={onPost}   // called with (sliderVals) from HCMTView
+      onAction={onPost}   // called with (sliderVals, jobDetails) from HCMTView
     />
   )
 }
@@ -1083,7 +1024,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
 //   onBack       () => void
 //   actionLabel  string for the primary CTA (default "SAVE CHANGES")
 //   onAction     () => void  (called when CTA is pressed)
-const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHANGES', onAction, initialWeights }) => {
+const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHANGES', onAction, initialWeights, initialJobDetails }) => {
   const today = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase()
 
   // ── Live slider state — seeded from initialWeights if provided ────────
@@ -1093,6 +1034,11 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
     return { pipeline: 9, scalability: 8, gov: 8, sovereignty: 9, privacy: 10 }
   })
   const setVal = (key, v) => setSliderVals(prev => ({ ...prev, [key]: v }))
+  const [jobDetails, setJobDetails] = useState(() => ({
+    title: initialJobDetails?.title || jobTitle || 'SENIOR CLOUD DATA ENGINEER',
+    salary: initialJobDetails?.salary || '£150,000 – £195,000 + equity',
+    location: initialJobDetails?.location || 'London, UK (Hybrid)',
+  }))
 
   // pct for radar (0-100)
   const radarValues = HCMT_CRITERIA.map(c => (sliderVals[c.key] / 10) * 100)
@@ -1101,7 +1047,7 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
   const tag = v => v >= 9 ? '[MAX]' : v >= 7 ? '[HIGH]' : v >= 5 ? '[MODERATE]' : v >= 3 ? '[LOW]' : '[MIN]'
 
   const matchPool = 18
-  const compRange = '£150k – £195k'
+  const compRange = jobDetails.salary || '£150k – £195k'
 
   // ── Shared panel styles ────────────────────────────────────────────────
   const panel = {
@@ -1168,14 +1114,14 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
               borderRadius: 3, padding: '2px 10px',
             }}>AVA: SDE-CLOUD</span>
             <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.03em', color: 'oklch(70% 0.15 195)' }}>
-              {jobTitle || 'SENIOR DATA ENGINEER'}
+              {jobDetails.title || jobTitle || 'SENIOR DATA ENGINEER'}
             </span>
           </div>
           {/* Action buttons moved into ticker */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span className="rl-pulse" style={{ flexShrink: 0 }}/>
             <button className="rl-back-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>← BACK</button>
-            <button className="rl-cta-btn" onClick={() => onAction?.(sliderVals)} style={{ fontFamily: APP_FONT, whiteSpace: 'nowrap' }}>
+            <button className="rl-cta-btn" onClick={() => onAction?.(sliderVals, jobDetails)} style={{ fontFamily: APP_FONT, whiteSpace: 'nowrap' }}>
               {actionLabel}
             </button>
           </div>
@@ -1276,10 +1222,19 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
               </div>
             </div>
             <div style={{ height: 1, background: 'oklch(32% 0.03 250)' }}/>
-            <div>
-              <div style={label12}>EST. TOTAL COMP RANGE:</div>
-              <div style={{ fontSize: 'clamp(18px,2vw,26px)', fontWeight: 800, color: 'oklch(70% 0.15 195)', marginTop: 4, textShadow: '0 0 16px oklch(60% 0.2 195 / 0.5)' }}>{compRange}</div>
-              <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em', marginTop: 2 }}>INDEXED TO SCORE TICKER</div>
+            <div style={{ display:'grid', gap:12 }}>
+              <div style={{ display:'grid', gap:6 }}>
+                <div style={label12}>JOB TITLE:</div>
+                <input value={jobDetails.title} onChange={e => setJobDetails(prev => ({ ...prev, title: e.target.value }))} style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, color:'oklch(88% 0.02 195)', padding:'10px 12px', fontFamily:APP_FONT, fontSize:14 }} />
+              </div>
+              <div style={{ display:'grid', gap:6 }}>
+                <div style={label12}>EST. TOTAL COMP RANGE:</div>
+                <input value={compRange} onChange={e => setJobDetails(prev => ({ ...prev, salary: e.target.value }))} style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, color:'oklch(70% 0.15 195)', padding:'10px 12px', fontFamily:APP_FONT, fontSize:14 }} />
+              </div>
+              <div style={{ display:'grid', gap:6 }}>
+                <div style={label12}>LOCATION:</div>
+                <input value={jobDetails.location} onChange={e => setJobDetails(prev => ({ ...prev, location: e.target.value }))} style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, color:'oklch(88% 0.02 195)', padding:'10px 12px', fontFamily:APP_FONT, fontSize:14 }} />
+              </div>
             </div>
             {/* Radar — updates live with sliders */}
             <div style={{ background: 'oklch(15% 0.025 250)', border: '1px solid oklch(45% 0.16 195 / 0.35)', borderRadius: 4, padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -1587,16 +1542,16 @@ const PostJobView = ({ onBack, onJobPosted }) => {
     <JDVisualView
       file={uploadedFile}
       onBack={() => { setUploaded(null); setMode(null) }}
-      onPost={async (sliderVals) => {
+      onPost={async (sliderVals, hcmtJobDetails) => {
         try {
           const saved = await postJob({
-            title:              'SENIOR CLOUD DATA ENGINEER',
+            title:              hcmtJobDetails?.title || 'SENIOR CLOUD DATA ENGINEER',
             dept:               'Data Engineering',
-            location:           'London, UK (Hybrid)',
+            location:           hcmtJobDetails?.location || 'London, UK (Hybrid)',
             type:               'Full-time',
             seniority:          'Senior',
             urgency:            'High',
-            salary:             '£150,000 – £195,000 + equity',
+            salary:             hcmtJobDetails?.salary || '£150,000 – £195,000 + equity',
             skills:             ['AWS', 'Spark', 'Data Governance', 'Data Sovereignty', 'Privacy Engineering'],
             description:        `We're hiring a Senior Cloud Data Engineer to own the architecture, scalability, and governance of our cloud data pipelines. This role sits at the intersection of platform engineering and data protection: you'll design systems that move and transform data reliably at scale, while ensuring that data residency, access control, and privacy-by-design are built into the architecture rather than bolted on afterward. You'll work closely with the Head of Data Platform and cross-functionally with Security, Compliance, and Product Engineering.`,
             requirements:       `• 7+ years in data engineering, with at least 3 years designing cloud-native pipeline architecture in production at scale.\n• Deep hands-on experience with a major cloud provider (AWS preferred); cloud architecture certification required.\n• Demonstrated track record of leading scale migrations — cite specific systems taken from one order of magnitude to the next.\n• Working knowledge of data governance frameworks (lineage, cataloging, access control) in a regulated or multi-region environment.\n• Practical experience implementing data sovereignty controls (region-locked storage/processing, cross-border transfer restrictions).\n• Strong grounding in privacy engineering principles and their application to real pipeline design, not just policy awareness.`,
