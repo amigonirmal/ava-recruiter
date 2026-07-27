@@ -95,6 +95,13 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [cardFilter, setCardFilter]               = useState('All') // 'All' | 'Accepted' | 'Pending'
   const [showCloseConfirm, setShowCloseConfirm]   = useState(false)
   const [isClosing, setIsClosing]                 = useState(false)
+  const [jobDetails, setJobDetails]               = useState(() => ({
+    title: job?.title || '',
+    salary: job?.salary || '',
+    location: job?.location || '',
+    skillsText: Array.isArray(job?.skills) ? job.skills.join(', ') : '',
+  }))
+  const [isSavingJobDetails, setIsSavingJobDetails] = useState(false)
 
   // JD weights — set via HCMT sliders; default matches scorecard spec:
   // pipeline:9, scalability:8, gov:8, sovereignty:9, privacy:10
@@ -172,6 +179,40 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
 
   const liveLine  = isClosed ? 'CLOSED: Position Filled' : 'LIVE: Underwriting Phase'
   const liveColor = isClosed ? 'oklch(65% 0.02 250)' : 'oklch(70% 0.17 145)'
+  const jobSkills = jobDetails.skillsText.split(',').map(skill => skill.trim()).filter(Boolean)
+  const maxSkillCount = Math.max(jobSkills.length, 1)
+
+  useEffect(() => {
+    setJobDetails({
+      title: job?.title || '',
+      salary: job?.salary || '',
+      location: job?.location || '',
+      skillsText: Array.isArray(job?.skills) ? job.skills.join(', ') : '',
+    })
+  }, [job])
+
+  const saveJobDetails = async () => {
+    if (!job?.id) return
+    setIsSavingJobDetails(true)
+    try {
+      await patchJob(job.id, {
+        title: jobDetails.title,
+        salary: jobDetails.salary,
+        location: jobDetails.location,
+        skills: jobSkills,
+      })
+      Object.assign(job, {
+        title: jobDetails.title,
+        salary: jobDetails.salary,
+        location: jobDetails.location,
+        skills: jobSkills,
+      })
+    } catch (err) {
+      console.error('patchJob details failed:', err)
+    } finally {
+      setIsSavingJobDetails(false)
+    }
+  }
 
   // Show full HCMT edit page when requested
   if (showHCMT) return (
@@ -225,11 +266,12 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
           <span style={{ fontSize:28, fontWeight:800, color:'oklch(72% 0.15 80)', fontFamily:'serif' }}>A</span>
           <div>
             <div style={{ fontSize:'clamp(13px,1.3vw,17px)', fontWeight:800, color:'oklch(90% 0.05 145)', letterSpacing:'0.02em' }}>
-              ACTIVE REQUISITION: <span style={{ color:'oklch(75% 0.02 250)' }}>{job?.title || 'Senior Data Engineer'}</span>
+              ACTIVE REQUISITION: <span style={{ color:'oklch(75% 0.02 250)' }}>{jobDetails.title || 'Senior Data Engineer'}</span>
             </div>
             <div style={{ fontSize:11, color:'oklch(60% 0.02 250)', letterSpacing:'0.04em', marginTop:3 }}>
               {job?.dept && <span>{job.dept} · </span>}
-              UNDERWRITING STANDARDS: Perf: 9.5, Comp: 2.0 &nbsp;·&nbsp;
+              {jobDetails.location && <span>{jobDetails.location} · </span>}
+              {jobDetails.salary && <span>EST. TOTAL COMP RANGE: {jobDetails.salary} · </span>}
               <span style={{ color:liveColor, fontWeight:700 }}>{liveLine}</span>
             </div>
           </div>
@@ -320,6 +362,52 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
                 border:'2px solid oklch(45% 0.16 195 / 0.4)', borderTopColor:'oklch(72% 0.15 195)',
                 animation:'spin 0.7s linear infinite' }}/>
             )}
+          </div>
+
+          <div style={{
+            display:'grid',
+            gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))',
+            gap:12,
+            background:'oklch(14% 0.025 250)',
+            border:'1px solid oklch(45% 0.16 195 / 0.25)',
+            borderRadius:10,
+            padding:12,
+          }}>
+            <div style={{ display:'grid', gap:6 }}>
+              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>JOB TITLE</div>
+              <input value={jobDetails.title} onChange={e => setJobDetails(prev => ({ ...prev, title: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
+            </div>
+            <div style={{ display:'grid', gap:6 }}>
+              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>EST. TOTAL COMP RANGE</div>
+              <input value={jobDetails.salary} onChange={e => setJobDetails(prev => ({ ...prev, salary: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
+            </div>
+            <div style={{ display:'grid', gap:6 }}>
+              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>LOCATION</div>
+              <input value={jobDetails.location} onChange={e => setJobDetails(prev => ({ ...prev, location: e.target.value }))} style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit' }} />
+            </div>
+            <div style={{ display:'grid', gap:6, gridColumn:'1 / -1' }}>
+              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>SKILL SET NEEDED</div>
+              <textarea rows={3} value={jobDetails.skillsText} onChange={e => setJobDetails(prev => ({ ...prev, skillsText: e.target.value }))} placeholder="AWS, Spark, Data Governance" style={{ background:'oklch(18% 0.02 250)', border:'1px solid oklch(45% 0.16 195 / 0.25)', borderRadius:6, color:'oklch(90% 0.02 250)', padding:'8px 10px', font:'inherit', resize:'vertical' }} />
+            </div>
+            <div style={{ gridColumn:'1 / -1', display:'grid', gap:8 }}>
+              <div style={{ fontSize:10, color:'oklch(60% 0.02 250)', letterSpacing:'0.06em' }}>SKILL SET CHART</div>
+              <div style={{ display:'grid', gap:8 }}>
+                {jobSkills.length ? jobSkills.map((skill, index) => (
+                  <div key={skill} style={{ display:'grid', gridTemplateColumns:'160px 1fr 30px', gap:8, alignItems:'center' }}>
+                    <div style={{ color:'oklch(84% 0.02 250)', fontSize:11 }}>{skill}</div>
+                    <div style={{ height:8, background:'oklch(20% 0.02 250)', borderRadius:999, overflow:'hidden' }}>
+                      <div style={{ width:`${((maxSkillCount - index) / maxSkillCount) * 100}%`, height:'100%', background:'oklch(70% 0.17 145)' }} />
+                    </div>
+                    <div style={{ color:'oklch(60% 0.02 250)', fontSize:10, textAlign:'right' }}>{maxSkillCount - index}</div>
+                  </div>
+                )) : <div style={{ color:'oklch(60% 0.02 250)', fontSize:11 }}>Add comma-separated skills to render the chart.</div>}
+              </div>
+            </div>
+            <div style={{ gridColumn:'1 / -1', display:'flex', justifyContent:'flex-end' }}>
+              <button className="mm-back-btn-chrome" onClick={saveJobDetails} disabled={isSavingJobDetails}>
+                {isSavingJobDetails ? 'SAVING…' : 'SAVE JOB DETAILS'}
+              </button>
+            </div>
           </div>
 
           {/* CARD GRID — filtered + ranked order, 6 columns */}
@@ -1441,7 +1529,7 @@ const PostJobView = ({ onBack, onJobPosted }) => {
   // Manual form state
   const [form, setForm] = useState({
     title: '', department: '', location: '', type: 'Full-time',
-    seniority: 'Mid', salary: '', description: '', requirements: '',
+    seniority: 'Mid', salary: '', skills: '', description: '', requirements: '',
     niceToHave: '', closingDate: '', urgency: 'Medium',
   })
   const [submitted, setSubmitted] = useState(false)
@@ -1463,7 +1551,7 @@ const PostJobView = ({ onBack, onJobPosted }) => {
     e.preventDefault()
     setPosting(true); setPostError(null)
     try {
-      const saved = await postJob({ ...form, dept: form.department })
+      const saved = await postJob({ ...form, dept: form.department, skills: form.skills.split(',').map(skill => skill.trim()).filter(Boolean) })
       onJobPosted?.(saved)
       setSubmitted(true)
     } catch (err) {
@@ -1502,13 +1590,14 @@ const PostJobView = ({ onBack, onJobPosted }) => {
       onPost={async (sliderVals) => {
         try {
           const saved = await postJob({
-            title:              'Senior Cloud Data Engineer',
+            title:              'SENIOR CLOUD DATA ENGINEER',
             dept:               'Data Engineering',
             location:           'London, UK (Hybrid)',
             type:               'Full-time',
             seniority:          'Senior',
             urgency:            'High',
             salary:             '£150,000 – £195,000 + equity',
+            skills:             ['AWS', 'Spark', 'Data Governance', 'Data Sovereignty', 'Privacy Engineering'],
             description:        `We're hiring a Senior Cloud Data Engineer to own the architecture, scalability, and governance of our cloud data pipelines. This role sits at the intersection of platform engineering and data protection: you'll design systems that move and transform data reliably at scale, while ensuring that data residency, access control, and privacy-by-design are built into the architecture rather than bolted on afterward. You'll work closely with the Head of Data Platform and cross-functionally with Security, Compliance, and Product Engineering.`,
             requirements:       `• 7+ years in data engineering, with at least 3 years designing cloud-native pipeline architecture in production at scale.\n• Deep hands-on experience with a major cloud provider (AWS preferred); cloud architecture certification required.\n• Demonstrated track record of leading scale migrations — cite specific systems taken from one order of magnitude to the next.\n• Working knowledge of data governance frameworks (lineage, cataloging, access control) in a regulated or multi-region environment.\n• Practical experience implementing data sovereignty controls (region-locked storage/processing, cross-border transfer restrictions).\n• Strong grounding in privacy engineering principles and their application to real pipeline design, not just policy awareness.`,
             niceToHave:         `• Prior experience in a HIPAA- or GDPR-regulated environment.\n• Experience mentoring or technically leading a team of 3+ engineers.\n• Open-source or public contribution history demonstrating performance optimization and caching work.`,
@@ -1623,6 +1712,13 @@ const PostJobView = ({ onBack, onJobPosted }) => {
                 <div className="rl-form-field rl-span-2">
                   <label>Requirements *</label>
                   <textarea rows={4} value={form.requirements} onChange={e => setForm(f=>({...f,requirements:e.target.value}))} placeholder="List required skills, experience and qualifications…" required />
+                </div>
+              </div>
+
+              <div className="rl-form-row">
+                <div className="rl-form-field rl-span-4">
+                  <label>Skill Set Needed</label>
+                  <input value={form.skills} onChange={e => setForm(f=>({...f,skills:e.target.value}))} placeholder="e.g. AWS, Spark, Data Governance" />
                 </div>
               </div>
 

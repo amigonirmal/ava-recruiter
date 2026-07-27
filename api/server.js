@@ -221,6 +221,7 @@ async function injectJobIntoProfiles(job) {
     company:            'Ava',
     location:           job.location || '',
     compensation_range: job.salary   || '',
+    skills:             Array.isArray(job.skills) ? job.skills : [],
     posted_date:        job.postedAt
                           ? new Date(job.postedAt).toISOString().slice(0, 10)
                           : new Date().toISOString().slice(0, 10),
@@ -449,6 +450,7 @@ app.post('/api/jobs', async (req, res) => {
     seniority:          body.seniority    || 'Mid',
     urgency:            body.urgency      || 'Medium',
     salary:             body.salary       || '',
+    skills:             Array.isArray(body.skills) ? body.skills : [],
     description:        body.description  || '',
     requirements:       body.requirements || '',
     niceToHave:         body.niceToHave   || '',
