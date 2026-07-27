@@ -183,6 +183,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
         title: job?.title || '',
         salary: job?.salary || '',
         location: job?.location || '',
+        skills: Array.isArray(job?.skills) ? job.skills.join(', ') : '',
       }}
       onBack={() => setShowHCMT(false)}
       actionLabel="SAVE & RETURN TO MATRIX"
@@ -193,12 +194,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             title: savedJobDetails.title,
             salary: savedJobDetails.salary,
             location: savedJobDetails.location,
+            skills: savedJobDetails.skills,
             competencyWeights: savedWeights,
           })
           Object.assign(job, {
             title: savedJobDetails.title,
             salary: savedJobDetails.salary,
             location: savedJobDetails.location,
+            skills: savedJobDetails.skills,
             competencyWeights: savedWeights,
           })
         } catch (err) {
@@ -1009,6 +1012,7 @@ const JDVisualView = ({ file, onPost, onBack }) => {
         title: 'SENIOR CLOUD DATA ENGINEER',
         salary: '£150,000 – £195,000 + equity',
         location: 'London, UK (Hybrid)',
+        skills: 'AWS, Spark, Data Governance, Data Sovereignty, Privacy Engineering',
       }}
       onBack={onBack}
       actionLabel="POST ROLE & START MATCHING"
@@ -1038,6 +1042,7 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
     title: initialJobDetails?.title || jobTitle || 'SENIOR CLOUD DATA ENGINEER',
     salary: initialJobDetails?.salary || '£150,000 – £195,000 + equity',
     location: initialJobDetails?.location || 'London, UK (Hybrid)',
+    skills: initialJobDetails?.skills || 'AWS, Spark, Data Governance, Data Sovereignty, Privacy Engineering',
   }))
 
   // pct for radar (0-100)
@@ -1048,6 +1053,7 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
 
   const matchPool = 18
   const compRange = jobDetails.salary || '£150k – £195k'
+  const skillList = jobDetails.skills.split(',').map(skill => skill.trim()).filter(Boolean)
 
   // ── Shared panel styles ────────────────────────────────────────────────
   const panel = {
@@ -1234,6 +1240,18 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
               <div style={{ display:'grid', gap:6 }}>
                 <div style={label12}>LOCATION:</div>
                 <input value={jobDetails.location} onChange={e => setJobDetails(prev => ({ ...prev, location: e.target.value }))} style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, color:'oklch(88% 0.02 195)', padding:'10px 12px', fontFamily:APP_FONT, fontSize:14 }} />
+              </div>
+              <div style={{ display:'grid', gap:6 }}>
+                <div style={label12}>SKILL SET:</div>
+                <textarea rows={3} value={jobDetails.skills} onChange={e => setJobDetails(prev => ({ ...prev, skills: e.target.value }))} style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, color:'oklch(88% 0.02 195)', padding:'10px 12px', fontFamily:APP_FONT, fontSize:13, resize:'vertical' }} />
+              </div>
+            </div>
+            <div style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, padding:'12px 14px', display:'grid', gap:8 }}>
+              <div style={{ ...label12, fontSize:10, letterSpacing:'0.08em', color:'oklch(70% 0.02 250)' }}>SKILL SET VISUAL</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {skillList.map(skill => (
+                  <span key={skill} style={{ padding:'5px 10px', borderRadius:999, border:'1px solid oklch(45% 0.16 195 / 0.35)', background:'oklch(20% 0.03 250)', color:'oklch(70% 0.15 195)', fontSize:11, fontWeight:700, letterSpacing:'0.03em' }}>{skill}</span>
+                ))}
               </div>
             </div>
             {/* Radar — updates live with sliders */}
@@ -1552,7 +1570,7 @@ const PostJobView = ({ onBack, onJobPosted }) => {
             seniority:          'Senior',
             urgency:            'High',
             salary:             hcmtJobDetails?.salary || '£150,000 – £195,000 + equity',
-            skills:             ['AWS', 'Spark', 'Data Governance', 'Data Sovereignty', 'Privacy Engineering'],
+            skills:             (hcmtJobDetails?.skills || 'AWS, Spark, Data Governance, Data Sovereignty, Privacy Engineering').split(',').map(skill => skill.trim()).filter(Boolean),
             description:        `We're hiring a Senior Cloud Data Engineer to own the architecture, scalability, and governance of our cloud data pipelines. This role sits at the intersection of platform engineering and data protection: you'll design systems that move and transform data reliably at scale, while ensuring that data residency, access control, and privacy-by-design are built into the architecture rather than bolted on afterward. You'll work closely with the Head of Data Platform and cross-functionally with Security, Compliance, and Product Engineering.`,
             requirements:       `• 7+ years in data engineering, with at least 3 years designing cloud-native pipeline architecture in production at scale.\n• Deep hands-on experience with a major cloud provider (AWS preferred); cloud architecture certification required.\n• Demonstrated track record of leading scale migrations — cite specific systems taken from one order of magnitude to the next.\n• Working knowledge of data governance frameworks (lineage, cataloging, access control) in a regulated or multi-region environment.\n• Practical experience implementing data sovereignty controls (region-locked storage/processing, cross-border transfer restrictions).\n• Strong grounding in privacy engineering principles and their application to real pipeline design, not just policy awareness.`,
             niceToHave:         `• Prior experience in a HIPAA- or GDPR-regulated environment.\n• Experience mentoring or technically leading a team of 3+ engineers.\n• Open-source or public contribution history demonstrating performance optimization and caching work.`,
