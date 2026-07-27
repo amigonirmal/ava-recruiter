@@ -167,8 +167,26 @@ app.use(express.json({ limit: '2mb' }))
 // Health check
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }))
 
-// GET /api/jobs
-app.get('/api/jobs', (_req, res) => res.json(readJobs()))
+// GET /api/jobs — reads live from GCS on every request (like candidates).
+// Falls back to local disk when GCS is unavailable.
+app.get('/api/jobs', async (_req, res) => {
+  if (gcsBucket) {
+    try {
+      const file = gcsBucket.file(GCS_OBJECT)
+      const [exists] = await file.exists()
+      if (exists) {
+        const [content] = await file.download()
+        const jobs = JSON.parse(content.toString('utf8'))
+        // Keep local copy in sync so POST/PATCH still work correctly
+        writeJobs(jobs)
+        return res.json(jobs)
+      }
+    } catch (err) {
+      console.warn(`[gcs] jobs live-read failed, falling back to disk: ${err.message}`)
+    }
+  }
+  res.json(readJobs())
+})
 
 // GET /api/candidates
 // Reads LIVE from GCS on every request (no disk cache).
@@ -208,6 +226,25 @@ app.patch('/api/candidates/:id', async (req, res) => {
     console.error('[candidates] PATCH failed:', err.message)
     res.status(500).json({ error: 'failed to update candidate' })
   }
+})
+
+// PATCH /api/jobs/:id  — update a single job (e.g. status:'closed')
+app.patch('/api/jobs/:id', async (req, res) => {
+  const { id } = req.params
+  const updates = req.body
+  if (!updates || typeof updates !== 'object') {
+    return res.status(400).json({ error: 'body must be a JSON object' })
+  }
+  const jobs = readJobs()
+  const idx  = jobs.findIndex(j => j.id === id)
+  if (idx === -1) return res.status(404).json({ error: `job id "${id}" not found` })
+
+  jobs[idx] = { ...jobs[idx], ...updates }
+  writeJobs(jobs)
+  await uploadToGcs(jobs)
+
+  console.log(`[jobs] patched ${id}:`, updates)
+  res.json(jobs[idx])
 })
 
 // POST /api/jobs

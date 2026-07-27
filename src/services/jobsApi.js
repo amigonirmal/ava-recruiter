@@ -43,6 +43,21 @@ export async function fetchCandidates() {
 }
 
 /**
+ * Patch a single job's fields (e.g. status:'closed', closedAt).
+ * @param {string} id       job id
+ * @param {Object} updates  { status:'closed', closedAt: '...' }
+ */
+export async function patchJob(id, updates) {
+  const res = await fetch(`${JOBS_BASE}/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  })
+  if (!res.ok) throw new Error(`patchJob failed: ${res.status}`)
+  return res.json()
+}
+
+/**
  * Patch a single candidate's fields (e.g. jobApplicationStatus).
  * @param {string} id       candidate id
  * @param {Object} updates  { jobApplicationStatus: 'accepted' }

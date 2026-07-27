@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import './LandingPage.css'
-import { fetchJobs, postJob, fetchCandidates } from '../services/jobsApi'
+import { fetchJobs, postJob, patchJob, patchCandidate, fetchCandidates } from '../services/jobsApi'
 import TalentHeatmap from './TalentHeatmap'
 import { rankCandidates } from '../services/rankingEngine'
 
@@ -48,17 +48,34 @@ const CandidateRow = ({ name, role, score, status, rating }) => {
   )
 }
 
-const JobCard = ({ title, dept, applicants, matched, urgency, onReviewMatches }) => {
+const JobCard = ({ title, dept, location, postedAt, urgency, matchesCount, acceptedCount, onReviewMatches }) => {
   const urgencyColor = { High:'#FF3B4E', Medium:'#F59E0B', Low:'#22C55E' }[urgency]
+  const postedLabel = postedAt
+    ? new Date(postedAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    : null
   return (
     <div className="rl-job-card">
       <div className="rl-job-header">
-        <div><div className="rl-job-title">{title}</div><div className="rl-job-dept">{dept}</div></div>
+        <div>
+          <div className="rl-job-title">{title}</div>
+          <div className="rl-job-dept">{dept}</div>
+        </div>
         <span className="rl-urgency-badge" style={{ color: urgencyColor, borderColor: urgencyColor }}>{urgency}</span>
       </div>
+      {/* Location + posted date row */}
+      <div style={{ display:'flex', gap:'0.8rem', fontSize:'0.58rem', color:'var(--color-text-muted)', letterSpacing:'0.04em' }}>
+        {location && <span>📍 {location}</span>}
+        {postedLabel && <span>🗓 {postedLabel}</span>}
+      </div>
       <div className="rl-job-stats">
-        <div className="rl-job-stat"><span>{applicants}</span><label>Applicants</label></div>
-        <div className="rl-job-stat"><span style={{ color:'var(--color-teal)' }}>{matched}</span><label>AI Matched</label></div>
+        <div className="rl-job-stat">
+          <span style={{ color:'var(--color-teal)' }}>{matchesCount ?? 0}</span>
+          <label>Matches</label>
+        </div>
+        <div className="rl-job-stat">
+          <span style={{ color:'#22C55E' }}>{acceptedCount ?? 0}</span>
+          <label>Accepted</label>
+        </div>
       </div>
       <button className="rl-job-btn" onClick={onReviewMatches}>REVIEW MATCHES</button>
     </div>
@@ -76,6 +93,8 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const [showHCMT, setShowHCMT]                   = useState(false)
   const [showScorecard, setShowScorecard]         = useState(false)
   const [cardFilter, setCardFilter]               = useState('All') // 'All' | 'Accepted' | 'Pending'
+  const [showCloseConfirm, setShowCloseConfirm]   = useState(false)
+  const [isClosing, setIsClosing]                 = useState(false)
 
   // JD weights — set via HCMT sliders; default matches scorecard spec:
   // pipeline:9, scalability:8, gov:8, sovereignty:9, privacy:10
@@ -243,14 +262,30 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
             ))}
           </div>
           {!isClosed ? (
-            <button className="mmc-close-btn" onClick={() => {
-              if (window.confirm(`Close role "${job?.title}"? It will move to Closed Jobs.`)) {
-                setIsClosed(true)
-                onClose(job)
-              }
-            }}>
-              ✕ CLOSE POSITION
-            </button>
+            showCloseConfirm ? (
+              <div className="mm-close-confirm">
+                <span>Close &quot;{job?.title}&quot;?</span>
+                <button className="mm-confirm-yes" disabled={isClosing} onClick={async () => {
+                  setIsClosing(true)
+                  try {
+                    await patchJob(job.id, { status: 'closed', closedAt: new Date().toISOString() })
+                  } catch (err) {
+                    console.error('patchJob close failed:', err)
+                  }
+                  setIsClosed(true)
+                  setShowCloseConfirm(false)
+                  setIsClosing(false)
+                  onClose(job)
+                }}>
+                  {isClosing ? '…' : 'YES, CLOSE'}
+                </button>
+                <button className="mm-confirm-no" onClick={() => setShowCloseConfirm(false)}>CANCEL</button>
+              </div>
+            ) : (
+              <button className="mmc-close-btn" onClick={() => setShowCloseConfirm(true)}>
+                ✕ CLOSE POSITION
+              </button>
+            )
           ) : (
             <div className="mmc-filled-badge">
               ✓ POSITION FILLED
@@ -1896,14 +1931,23 @@ const LandingPage = ({ user, onLogout }) => {
   const [selectedJob, setSelectedJob] = useState(null)
   const [closedJobs, setClosedJobs]   = useState([])
   const [jobsTab, setJobsTab]         = useState('open') // 'open' | 'closed'
+  const [allCandidates, setAllCandidates] = useState([])
 
-  // Load jobs from API on mount
+  // Load jobs + candidates from API on mount
   useEffect(() => {
     fetchJobs()
       .then(data => setJobs(data))
       .catch(err => console.error('fetchJobs:', err))
       .finally(() => setJobsLoading(false))
+    fetchCandidates()
+      .then(data => setAllCandidates(data.candidates || []))
+      .catch(err => console.error('fetchCandidates (landing):', err))
   }, [])
+
+  // Total ranked candidates = all candidates (the matrix ranks everyone per job)
+  const totalCandidates = allCandidates.length
+  // Accepted count = candidates with jobApplicationStatus === 'accepted'
+  const totalAccepted   = allCandidates.filter(c => c.jobApplicationStatus === 'accepted').length
 
   // Called by PostJobView after a successful POST /api/jobs
   const handleJobPosted = (newJob) => {
@@ -2093,7 +2137,7 @@ const LandingPage = ({ user, onLogout }) => {
                 </section>
                 <section className="rl-card">
                   <div className="rl-card-header"><div className="rl-card-title">ACTIVE JOB ROLES</div><div className="rl-card-sub">AI MATCH PIPELINE</div></div>
-                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.title} {...j} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
+                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.id||j.title} {...j} matchesCount={totalCandidates} acceptedCount={totalAccepted} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
                 </section>
               </div>
               <div className="rl-two-col">
@@ -2182,6 +2226,8 @@ const LandingPage = ({ user, onLogout }) => {
                 <div className="rl-jobs-full-grid">
                   {jobs.map(j => (
                     <JobCard key={j.id || j.title} {...j}
+                      matchesCount={totalCandidates}
+                      acceptedCount={totalAccepted}
                       onReviewMatches={() => { setSelectedJob(j); setView('matches') }}
                     />
                   ))}
@@ -2201,9 +2247,20 @@ const LandingPage = ({ user, onLogout }) => {
                         </div>
                         <span className="rl-closed-badge">CLOSED</span>
                       </div>
+                      {j.location && (
+                        <div style={{ fontSize:'0.58rem', color:'var(--color-text-muted)', letterSpacing:'0.04em' }}>
+                          📍 {j.location}
+                        </div>
+                      )}
                       <div className="rl-job-stats">
-                        <div className="rl-job-stat"><span>{j.applicants || 0}</span><label>Applicants</label></div>
-                        <div className="rl-job-stat"><span style={{color:'var(--color-text-muted)'}}>{j.matched || 0}</span><label>Matched</label></div>
+                        <div className="rl-job-stat">
+                          <span style={{ color:'var(--color-teal)' }}>{totalCandidates}</span>
+                          <label>Matches</label>
+                        </div>
+                        <div className="rl-job-stat">
+                          <span style={{ color:'#22C55E' }}>{totalAccepted}</span>
+                          <label>Accepted</label>
+                        </div>
                       </div>
                       <div className="rl-closed-date">
                         Closed {j.closedAt ? new Date(j.closedAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) : 'recently'}
@@ -2219,7 +2276,13 @@ const LandingPage = ({ user, onLogout }) => {
           {view === 'post-job' && <PostJobView onBack={() => setView('jobs')} onJobPosted={handleJobPosted} />}
 
           {/* MATCHING MATRIX */}
-          {view === 'matches'    && <MatchingMatrixView job={selectedJob} onBack={() => setView('jobs')} onClose={handleCloseJob} />}
+          {view === 'matches'    && <MatchingMatrixView job={selectedJob} onBack={() => {
+            // Re-fetch candidates so Matches/Accepted counts in Job Roles are up to date
+            fetchCandidates()
+              .then(data => setAllCandidates(data.candidates || []))
+              .catch(() => {})
+            setView('jobs')
+          }} onClose={handleCloseJob} />}
           {view === 'cv-profile' && <CVProfileView onBack={() => setView('candidates')} />}
 
           {/* ANALYTICS */}
