@@ -1936,7 +1936,10 @@ const LandingPage = ({ user, onLogout }) => {
   // Load jobs + candidates from API on mount
   useEffect(() => {
     fetchJobs()
-      .then(data => setJobs(data))
+      .then(data => {
+        setJobs(data.filter(j => j.status !== 'closed'))
+        setClosedJobs(data.filter(j => j.status === 'closed'))
+      })
       .catch(err => console.error('fetchJobs:', err))
       .finally(() => setJobsLoading(false))
     fetchCandidates()
