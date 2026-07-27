@@ -2,8 +2,12 @@
  * AVA Recruiter — API Server
  *
  * Routes:
- *   GET  /api/jobs                   → return all jobs (local JSON, restored from GCS on cold-start)
- *   POST /api/jobs                   → append a new job, persist locally + upload to GCS
+ *   GET  /api/jobs                   → return all jobs (live from GCS, fallback disk)
+ *   POST /api/jobs                   → append a new job, persist to GCS jobs.json
+ *                                      + inject new job_search entry (status:"") into every
+ *                                        candidate profile in GCS bucket/profiles/
+ *   PATCH /api/jobs/:id              → update a single job field (e.g. status:'closed')
+ *                                      + inject job_search entry into profiles if not present
  *   GET  /api/candidates             → return candidates_final.json (from GCS if available, else local)
  *   PATCH /api/candidates/:id        → update a single candidate field (e.g. jobApplicationStatus)
  *   GET  /healthz                    → health check for Cloud Run
@@ -11,11 +15,12 @@
  * In production (Cloud Run) Node also serves the pre-built React SPA from /dist.
  *
  * Env vars — set in api/.env for local dev, or in Cloud Run service:
- *   PORT                  default 3001  (Cloud Run injects 8080)
- *   GCS_BUCKET            GCS bucket name, e.g. ava-storage-bucket
- *   GCS_JOBS_OBJECT       object path inside bucket, default data/jobs.json
- *   GCS_CANDIDATES_OBJECT object path for candidates, default candidates/candidates_final.json
- *   NODE_ENV              production | development
+ *   PORT                    default 3001  (Cloud Run injects 8080)
+ *   GCS_BUCKET              GCS bucket name, e.g. ava-storage-bucket
+ *   GCS_JOBS_OBJECT         object path inside bucket, default data/jobs.json
+ *   GCS_CANDIDATES_OBJECT   object path for candidates, default candidates/candidates_final.json
+ *   GCS_PROFILES_PREFIX     folder prefix for candidate profiles, default profiles
+ *   NODE_ENV                production | development
  */
 
 // ── Load .env from api/ directory (local dev only; no-op if file absent) ─────
@@ -38,10 +43,11 @@ const JOBS_FILE      = path.join(DATA_DIR, 'jobs.json')
 const CANDS_FILE     = path.join(DATA_DIR, 'candidates_final.json')
 
 // ── GCS setup (active when GCS_BUCKET env var is set) ────────────────────────
-const GCS_BUCKET      = (process.env.GCS_BUCKET || '').trim()
-const GCS_OBJECT      = (process.env.GCS_JOBS_OBJECT || 'data/jobs.json').trim()
-const GCS_CANDS_OBJ   = (process.env.GCS_CANDIDATES_OBJECT || 'candidates/candidates_final.json').trim()
-let gcsBucket         = null
+const GCS_BUCKET          = (process.env.GCS_BUCKET || '').trim()
+const GCS_OBJECT          = (process.env.GCS_JOBS_OBJECT || 'data/jobs.json').trim()
+const GCS_CANDS_OBJ       = (process.env.GCS_CANDIDATES_OBJECT || 'candidates/candidates_final.json').trim()
+const GCS_PROFILES_PREFIX = (process.env.GCS_PROFILES_PREFIX || 'profiles').trim()
+let gcsBucket             = null
 
 if (GCS_BUCKET) {
   try {
@@ -135,6 +141,115 @@ async function saveCandidatesToGcs(data) {
   } catch (err) {
     console.error(`[gcs] ✗ candidates save failed: ${err.message}`)
   }
+}
+
+// ── Candidate Profiles (GCS — profiles/ca0001.json … ca000N.json) ────────────
+// Lists all objects under GCS_PROFILES_PREFIX, reads each, patches job_search,
+// and writes back. Only runs when gcsBucket is configured.
+
+/**
+ * Return all profile object names under the profiles prefix.
+ * @returns {Promise<string[]>}  e.g. ['profiles/ca0001.json', 'profiles/ca0002.json']
+ */
+async function listProfileObjects() {
+  if (!gcsBucket) return []
+  try {
+    const [files] = await gcsBucket.getFiles({ prefix: GCS_PROFILES_PREFIX + '/' })
+    return files
+      .map(f => f.name)
+      .filter(n => n.endsWith('.json'))
+  } catch (err) {
+    console.error(`[profiles] listProfileObjects failed: ${err.message}`)
+    return []
+  }
+}
+
+/**
+ * Read a single profile JSON from GCS.
+ * @param {string} objectName
+ * @returns {Promise<Object|null>}
+ */
+async function readProfileFromGcs(objectName) {
+  try {
+    const [content] = await gcsBucket.file(objectName).download()
+    return JSON.parse(content.toString('utf8'))
+  } catch (err) {
+    console.error(`[profiles] read "${objectName}" failed: ${err.message}`)
+    return null
+  }
+}
+
+/**
+ * Write a single profile JSON back to GCS.
+ * @param {string} objectName
+ * @param {Object} data
+ */
+async function writeProfileToGcs(objectName, data) {
+  try {
+    await gcsBucket.file(objectName).save(JSON.stringify(data, null, 2), {
+      contentType: 'application/json',
+      metadata: { cacheControl: 'no-cache' },
+    })
+    console.log(`[profiles] ✓ updated ${objectName}`)
+  } catch (err) {
+    console.error(`[profiles] write "${objectName}" failed: ${err.message}`)
+  }
+}
+
+/**
+ * Inject a new job_search entry (status: "") into every candidate profile in GCS.
+ * If the job_id already exists in a profile's job_search array, that entry is skipped
+ * so we never duplicate or overwrite an existing status.
+ *
+ * @param {Object} job  — the full job object (id, title, location, salary, postedAt …)
+ */
+async function injectJobIntoProfiles(job) {
+  if (!gcsBucket) {
+    console.warn('[profiles] GCS not configured — skipping profile injection')
+    return
+  }
+
+  const objectNames = await listProfileObjects()
+  if (objectNames.length === 0) {
+    console.warn(`[profiles] no profiles found under gs://${GCS_BUCKET}/${GCS_PROFILES_PREFIX}/`)
+    return
+  }
+
+  const entry = {
+    job_id:             job.id    || '',
+    title:              job.title || '',
+    company:            'Ava',
+    location:           job.location || '',
+    compensation_range: job.salary   || '',
+    posted_date:        job.postedAt
+                          ? new Date(job.postedAt).toISOString().slice(0, 10)
+                          : new Date().toISOString().slice(0, 10),
+    status:             '',          // intentionally blank — set by recruiter later
+    decision_reason:    '',
+  }
+
+  console.log(`[profiles] injecting job "${job.id}" into ${objectNames.length} profiles…`)
+
+  await Promise.all(objectNames.map(async (name) => {
+    const profile = await readProfileFromGcs(name)
+    if (!profile) return
+
+    // Ensure job_search array exists
+    if (!Array.isArray(profile.job_search)) profile.job_search = []
+
+    // Skip if this job_id is already present
+    const alreadyPresent = profile.job_search.some(e => e.job_id === entry.job_id)
+    if (alreadyPresent) {
+      console.log(`[profiles] skipped ${name} — job_id "${entry.job_id}" already present`)
+      return
+    }
+
+    // Prepend so newest job is first
+    profile.job_search = [entry, ...profile.job_search]
+    await writeProfileToGcs(name, profile)
+  }))
+
+  console.log(`[profiles] ✓ injection complete for job "${job.id}"`)
 }
 
 /**
@@ -243,6 +358,14 @@ app.patch('/api/jobs/:id', async (req, res) => {
   writeJobs(jobs)
   await uploadToGcs(jobs)
 
+  // If this patch carries job metadata changes (not just status:'closed'),
+  // ensure every profile has a job_search entry for this job (no-op if already present)
+  if (!updates.status || updates.status !== 'closed') {
+    injectJobIntoProfiles(jobs[idx]).catch(err =>
+      console.error('[profiles] injectJobIntoProfiles (patch) error:', err.message)
+    )
+  }
+
   console.log(`[jobs] patched ${id}:`, updates)
   res.json(jobs[idx])
 })
@@ -276,6 +399,11 @@ app.post('/api/jobs', async (req, res) => {
   jobs.unshift(newJob)   // newest first
   writeJobs(jobs)
   await uploadToGcs(jobs)
+
+  // Inject new job_search entry into every candidate profile in GCS (fire-and-forget)
+  injectJobIntoProfiles(newJob).catch(err =>
+    console.error('[profiles] injectJobIntoProfiles error:', err.message)
+  )
 
   console.log(`[jobs] posted: "${newJob.title}" (id=${newJob.id})`)
   res.status(201).json(newJob)
