@@ -1066,20 +1066,32 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
 
       {/* TICKER */}
       <div style={{ ...panel, padding: '14px 18px', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em', color: 'oklch(90% 0.02 195)' }}>
-            TICKER:
-          </span>
-          <span style={{
-            fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em',
-            color: 'oklch(20% 0.03 250)', background: 'oklch(72% 0.15 80)',
-            boxShadow: '0 0 14px oklch(72% 0.18 80 / 0.6)',
-            borderRadius: 3, padding: '2px 10px',
-          }}>AVA: SDE-CLOUD</span>
-          <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.03em', color: 'oklch(70% 0.15 195)' }}>
-            {jobTitle || 'SENIOR DATA ENGINEER'}
-          </span>
+        {/* Row 1: ticker identity + action buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em', color: 'oklch(90% 0.02 195)' }}>
+              TICKER:
+            </span>
+            <span style={{
+              fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.04em',
+              color: 'oklch(20% 0.03 250)', background: 'oklch(72% 0.15 80)',
+              boxShadow: '0 0 14px oklch(72% 0.18 80 / 0.6)',
+              borderRadius: 3, padding: '2px 10px',
+            }}>AVA: SDE-CLOUD</span>
+            <span style={{ fontSize: 'clamp(13px,1.4vw,20px)', fontWeight: 800, letterSpacing: '0.03em', color: 'oklch(70% 0.15 195)' }}>
+              {jobTitle || 'SENIOR DATA ENGINEER'}
+            </span>
+          </div>
+          {/* Action buttons moved into ticker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span className="rl-pulse" style={{ flexShrink: 0 }}/>
+            <button className="rl-back-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>← BACK</button>
+            <button className="rl-cta-btn" onClick={() => onAction?.(sliderVals)} style={{ fontFamily: APP_FONT, whiteSpace: 'nowrap' }}>
+              {actionLabel}
+            </button>
+          </div>
         </div>
+        {/* Row 2: meta fields */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: 12, letterSpacing: '0.03em' }}>
           <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ASSET CLASS:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>HUMAN CAPITAL: DATA ENG.</span></div>
           <div><span style={{ color: 'oklch(90% 0.02 195)', fontWeight: 700 }}>ISSUE DATE:</span> <span style={{ color: 'oklch(75% 0.02 250)' }}>{today}</span></div>
@@ -1236,19 +1248,184 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
         </section>
       </div>
 
-      {/* ACTION ROW */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <button className="rl-back-btn" onClick={onBack} style={{ fontFamily: APP_FONT }}>← BACK TO MATRIX</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="rl-pulse"/>
-          <span style={{ fontSize: 11, letterSpacing: '0.1em', color: 'oklch(55% 0.02 250)', fontFamily: APP_FONT }}>
-            {HCMT_CRITERIA.length} COMPETENCY VECTORS ACTIVE — RADAR UPDATING LIVE
+      {/* COMPETENCY VECTORS STATUS BAR */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="rl-pulse"/>
+        <span style={{ fontSize: 11, letterSpacing: '0.1em', color: 'oklch(55% 0.02 250)', fontFamily: APP_FONT }}>
+          {HCMT_CRITERIA.length} COMPETENCY VECTORS ACTIVE — RADAR UPDATING LIVE
+        </span>
+      </div>
+
+      {/* RAW JD — collapsible */}
+      <RawJDSection />
+    </div>
+  )
+}
+
+// ── RawJDSection — collapsible raw job description panel ─────────────────────
+const RAW_JD = `AVA  ·  Job Description
+
+SENIOR CLOUD DATA ENGINEER
+Data Engineering · Full-time · Hybrid (London, UK)
+
+────────────────────────────────────────────────────
+OVERVIEW
+────────────────────────────────────────────────────
+Department        Data Engineering
+Reports to        Head of Data Platform
+Employment type   Full-time, permanent
+Location          London, UK (Hybrid — 2 days on-site)
+Compensation      £150,000 – £195,000 + equity
+Job ref.          AVA-SDE-CLOUD-2607
+Posted            27 July 2026
+Status            Actively hiring
+
+────────────────────────────────────────────────────
+JOB SUMMARY
+────────────────────────────────────────────────────
+We're hiring a Senior Cloud Data Engineer to own the architecture, scalability,
+and governance of our cloud data pipelines. This role sits at the intersection of
+platform engineering and data protection: you'll design systems that move and
+transform data reliably at scale, while ensuring that data residency, access
+control, and privacy-by-design are built into the architecture rather than bolted
+on afterward. You'll work closely with the Head of Data Platform and cross-
+functionally with Security, Compliance, and Product Engineering.
+
+────────────────────────────────────────────────────
+KEY RESPONSIBILITIES
+────────────────────────────────────────────────────
+•  Design, build, and own end-to-end cloud data pipeline architecture, from
+   ingestion through transformation to serving layers.
+•  Architect systems for horizontal scalability, anticipating 10x+ growth in data
+   volume and query load without redesign.
+•  Establish and enforce data governance standards: lineage tracking, quality
+   checks, access policies, and audit logging across all pipelines.
+•  Implement data sovereignty controls, ensuring data is stored, processed, and
+   transferred in compliance with regional residency requirements.
+•  Embed privacy engineering practices (data minimization, encryption at rest and
+   in transit, anonymization/pseudonymization) directly into pipeline design.
+•  Lead performance optimization and caching strategy for high-throughput data
+   workloads.
+•  Partner with Security and Legal on HIPAA/GDPR-adjacent data handling
+   requirements as they apply to specific workstreams.
+•  Mentor mid-level engineers and set technical standards for the wider data
+   engineering team.
+
+────────────────────────────────────────────────────
+ROLE REQUIREMENTS  (weighted competency evaluation)
+────────────────────────────────────────────────────
+Parameter              Weight    Priority
+Pipeline Architecture  9.0/10    Max      End-to-end ownership of ingestion-to-serving pipeline design.
+Scalability            8.0/10    High     Systems built to absorb 10x growth without redesign.
+Data Governance        8.0/10    High     Lineage, cataloging, and access control across all pipelines.
+Data Sovereignty       9.0/10    Max      Region-locked storage/processing, cross-border transfer controls.
+Privacy Engineering    10.0/10   Max      Privacy-by-design embedded in architecture, not policy alone.
+
+────────────────────────────────────────────────────
+REQUIRED QUALIFICATIONS
+────────────────────────────────────────────────────
+•  7+ years in data engineering, with at least 3 years designing cloud-native
+   pipeline architecture in production at scale.
+•  Deep hands-on experience with a major cloud provider (AWS preferred);
+   cloud architecture certification required.
+•  Demonstrated track record of leading scale migrations — cite specific systems
+   taken from one order of magnitude to the next.
+•  Working knowledge of data governance frameworks (lineage, cataloging, access
+   control) in a regulated or multi-region environment.
+•  Practical experience implementing data sovereignty controls (region-locked
+   storage/processing, cross-border transfer restrictions).
+•  Strong grounding in privacy engineering principles and their application to
+   real pipeline design, not just policy awareness.
+
+────────────────────────────────────────────────────
+PREFERRED QUALIFICATIONS
+────────────────────────────────────────────────────
+•  Prior experience in a HIPAA- or GDPR-regulated environment.
+•  Experience mentoring or technically leading a team of 3+ engineers.
+•  Open-source or public contribution history demonstrating performance
+   optimization and caching work.
+
+────────────────────────────────────────────────────
+PROOF OF WORK WE'LL ASK FOR
+────────────────────────────────────────────────────
+In place of a traditional interview-only process, we weight verifiable evidence:
+
+•  GitHub history showing performance optimization and caching work.
+•  Jira or equivalent project history evidencing a Tech Lead role on a scale
+   migration.
+•  Current cloud architecture certification (AWS Solutions Architect or equivalent
+   Performance Specialist track).
+
+────────────────────────────────────────────────────
+COMPENSATION & BENEFITS
+────────────────────────────────────────────────────
+•  Base salary: £150,000 – £195,000, based on experience and interview performance.
+•  Equity grant, reviewed annually.
+•  Private health cover, pension contribution matching, and 25 days annual leave
+   plus bank holidays.
+•  Hybrid working — 2 days per week on-site at our London office.
+•  Professional development budget for certifications and conference attendance.
+
+────────────────────────────────────────────────────
+HOW TO APPLY
+────────────────────────────────────────────────────
+Submit your CV along with links to relevant GitHub repositories and any public
+record of the scale migration work referenced above. Candidates are matched and
+ranked against this role's competency weighting; you'll be notified of your match
+outcome regardless of result.
+
+Ava is an equal opportunity employer. We evaluate all candidates on evidence of
+ability, consistent with our commitment to evidence over opinion in hiring.`
+
+function RawJDSection() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{
+      background: 'oklch(18% 0.03 250)',
+      border: '1px solid oklch(45% 0.16 195 / 0.5)',
+      borderRadius: 4,
+      overflow: 'hidden',
+    }}>
+      {/* Header / toggle */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '10px 14px',
+          borderBottom: open ? '1px solid oklch(45% 0.16 195 / 0.35)' : 'none',
+          fontFamily: APP_FONT,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'oklch(85% 0.02 250)' }}>
+            RAW JD — AVA-SDE-CLOUD-2607
+          </span>
+          <span style={{ fontSize: 9, letterSpacing: '0.08em', color: 'oklch(65% 0.02 250)', background: 'oklch(22% 0.03 250)', border: '1px solid oklch(40% 0.03 250)', borderRadius: 3, padding: '1px 6px' }}>
+            Senior Cloud Data Engineer · London · £150k–£195k
           </span>
         </div>
-        <button className="rl-cta-btn" onClick={() => onAction?.(sliderVals)} style={{ fontFamily: APP_FONT }}>
-          {actionLabel}
-        </button>
-      </div>
+        <span style={{ fontSize: 13, color: 'oklch(60% 0.02 250)', transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          ▾
+        </span>
+      </button>
+      {/* Body */}
+      {open && (
+        <pre style={{
+          margin: 0,
+          padding: '14px 18px',
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          fontSize: 11,
+          lineHeight: 1.75,
+          color: 'oklch(78% 0.02 250)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          maxHeight: 480,
+          overflowY: 'auto',
+        }}>
+          {RAW_JD}
+        </pre>
+      )}
     </div>
   )
 }
