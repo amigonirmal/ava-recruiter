@@ -41,6 +41,7 @@ const PORT = process.env.PORT || 3001
 const DATA_DIR       = path.resolve(__dirname, '..', 'data')
 const JOBS_FILE      = path.join(DATA_DIR, 'jobs.json')
 const CANDS_FILE     = path.join(DATA_DIR, 'candidates_final.json')
+const CANDS_DIR      = path.join(DATA_DIR, 'candidates')
 
 // ── GCS setup (active when GCS_BUCKET env var is set) ────────────────────────
 const GCS_BUCKET          = (process.env.GCS_BUCKET || '').trim()
@@ -94,17 +95,26 @@ async function uploadToGcs(jobs) {
 // We never try to write candidates back to the container disk.
 // In local dev (no GCS_BUCKET), we fall back to the local file.
 
-async function readCandidatesFromGcs() {
+function getCandidatesObjectPath(jobId) {
+  return jobId ? `candidates/${jobId}.json` : GCS_CANDS_OBJ
+}
+
+function getCandidatesDiskPath(jobId) {
+  return jobId ? path.join(CANDS_DIR, `${jobId}.json`) : CANDS_FILE
+}
+
+async function readCandidatesFromGcs(jobId) {
   if (!gcsBucket) return null
+  const objectPath = getCandidatesObjectPath(jobId)
   try {
-    const file = gcsBucket.file(GCS_CANDS_OBJ)
+    const file = gcsBucket.file(objectPath)
     const [exists] = await file.exists()
     if (!exists) {
-      console.log('[gcs] candidates file not found in bucket — using local seed')
+      console.log(`[gcs] candidates file not found at ${objectPath} — using local seed`)
       return null
     }
     const [content] = await file.download()
-    console.log(`[gcs] ✓ read candidates from gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+    console.log(`[gcs] ✓ read candidates from gs://${GCS_BUCKET}/${objectPath}`)
     return JSON.parse(content.toString('utf8'))
   } catch (err) {
     console.error(`[gcs] candidates read failed: ${err.message}`)
@@ -112,35 +122,56 @@ async function readCandidatesFromGcs() {
   }
 }
 
-function readCandidatesFromDisk() {
-  try { return JSON.parse(fs.readFileSync(CANDS_FILE, 'utf8')) } catch { return { candidates: [] } }
+function readCandidatesFromDisk(jobId) {
+  try {
+    return JSON.parse(fs.readFileSync(getCandidatesDiskPath(jobId), 'utf8'))
+  } catch {
+    return { candidates: [] }
+  }
 }
 
-async function getCandidates() {
-  const gcsData = await readCandidatesFromGcs()
-  return gcsData ?? readCandidatesFromDisk()
+async function getCandidates(jobId) {
+  const gcsData = await readCandidatesFromGcs(jobId)
+  return gcsData ?? readCandidatesFromDisk(jobId)
 }
 
-async function saveCandidatesToGcs(data) {
+async function saveCandidates(data, jobId) {
+  const filePath = getCandidatesDiskPath(jobId)
+  const objectPath = getCandidatesObjectPath(jobId)
+
   if (!gcsBucket) {
-    // Local dev — write to disk instead
     try {
-      fs.writeFileSync(CANDS_FILE, JSON.stringify(data, null, 2))
-      console.log(`[candidates] wrote to disk (local dev): ${CANDS_FILE}`)
+      fs.mkdirSync(path.dirname(filePath), { recursive: true })
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
+      console.log(`[candidates] wrote to disk: ${filePath}`)
     } catch (err) {
       console.error(`[candidates] disk write failed: ${err.message}`)
     }
     return
   }
   try {
-    await gcsBucket.file(GCS_CANDS_OBJ).save(JSON.stringify(data, null, 2), {
+    await gcsBucket.file(objectPath).save(JSON.stringify(data, null, 2), {
       contentType: 'application/json',
       metadata: { cacheControl: 'no-cache' },
     })
-    console.log(`[gcs] ✓ saved candidates → gs://${GCS_BUCKET}/${GCS_CANDS_OBJ}`)
+    console.log(`[gcs] ✓ saved candidates → gs://${GCS_BUCKET}/${objectPath}`)
   } catch (err) {
     console.error(`[gcs] ✗ candidates save failed: ${err.message}`)
   }
+}
+
+async function createJobCandidatesFile(job) {
+  const seed = await getCandidates()
+  const jobCandidates = {
+    ...seed,
+    jobId: job.id,
+    jobTitle: job.title,
+    candidates: (seed.candidates || []).map(candidate => ({
+      ...candidate,
+      jobApplicationStatus: 'pending',
+    })),
+  }
+  await saveCandidates(jobCandidates, job.id)
 }
 
 // ── Candidate Profiles (GCS — profiles/ca0001.json … ca000N.json) ────────────
@@ -371,9 +402,9 @@ app.patch('/api/profiles/:id/job-search/:jobId', async (req, res) => {
 // Reads LIVE from GCS on every request (no disk cache).
 // In local dev (no GCS_BUCKET) falls back to src/data/candidates_final.json.
 // Edit gs://ava-storage-bucket/candidates/candidates_final.json → reflects immediately.
-app.get('/api/candidates', async (_req, res) => {
+app.get('/api/candidates', async (req, res) => {
   try {
-    const data = await getCandidates()
+    const data = await getCandidates(req.query.jobId)
     res.json(data)
   } catch (err) {
     console.error('[candidates] GET failed:', err.message)
@@ -387,17 +418,18 @@ app.get('/api/candidates', async (_req, res) => {
 app.patch('/api/candidates/:id', async (req, res) => {
   const { id } = req.params
   const updates = req.body
+  const jobId = req.query.jobId
   if (!updates || typeof updates !== 'object') {
     return res.status(400).json({ error: 'body must be a JSON object of fields to update' })
   }
 
   try {
-    const data = await getCandidates()
+    const data = await getCandidates(jobId)
     const idx  = (data.candidates || []).findIndex(c => c.id === id)
     if (idx === -1) return res.status(404).json({ error: `candidate id "${id}" not found` })
 
     data.candidates[idx] = { ...data.candidates[idx], ...updates }
-    await saveCandidatesToGcs(data)
+    await saveCandidates(data, jobId)
 
     console.log(`[candidates] patched ${id}:`, updates)
     res.json(data.candidates[idx])
@@ -470,6 +502,8 @@ app.post('/api/jobs', async (req, res) => {
   jobs.unshift(newJob)   // newest first
   writeJobs(jobs)
   await uploadToGcs(jobs)
+
+  await createJobCandidatesFile(newJob)
 
   // Inject new job_search entry into every candidate profile in GCS (fire-and-forget)
   injectJobIntoProfiles(newJob).catch(err =>

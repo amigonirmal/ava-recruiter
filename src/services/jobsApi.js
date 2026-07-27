@@ -36,8 +36,9 @@ export async function postJob(job) {
  * will be reflected here without a new front-end build.
  * @returns {Promise<Object>}  { meta, scoreCriteria, candidates, … }
  */
-export async function fetchCandidates() {
-  const res = await fetch(CANDS_BASE)
+export async function fetchCandidates(jobId) {
+  const suffix = jobId ? `?jobId=${encodeURIComponent(jobId)}` : ''
+  const res = await fetch(`${CANDS_BASE}${suffix}`)
   if (!res.ok) throw new Error(`fetchCandidates failed: ${res.status}`)
   return res.json()
 }
@@ -63,8 +64,9 @@ export async function patchJob(id, updates) {
  * @param {Object} updates  { jobApplicationStatus: 'accepted' }
  * @returns {Promise<Object>} updated candidate
  */
-export async function patchCandidate(id, updates) {
-  const res = await fetch(`${CANDS_BASE}/${id}`, {
+export async function patchCandidate(id, updates, jobId) {
+  const suffix = jobId ? `?jobId=${encodeURIComponent(jobId)}` : ''
+  const res = await fetch(`${CANDS_BASE}/${id}${suffix}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),

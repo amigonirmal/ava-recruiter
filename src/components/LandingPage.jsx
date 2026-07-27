@@ -113,10 +113,10 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   // Fetch live candidate data from the API every time the matrix opens
   useEffect(() => {
     setLoading(true)
-    fetchCandidates()
+    fetchCandidates(job?.id)
       .then(data => { setCandidates(data.candidates || []); setLoading(false) })
       .catch(err  => { console.error('fetchCandidates:', err); setLoading(false) })
-  }, [])
+  }, [job?.id])
 
   // ── Live ranking — recomputes instantly on slider or candidates change ──────
   const rankResult = useMemo(() => rankCandidates({
@@ -141,8 +141,8 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
   const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true })
 
   // Card visual style by status
-  // accepted  → green border + glow
-  // not_responded → grey/dimmed
+  // accepted → green border + glow
+  // pending  → grey/dimmed
   const cardStyle = (c) => {
     if (c.jobApplicationStatus === 'accepted') return {
       border:     '1px solid oklch(68% 0.18 145 / 0.9)',
@@ -2242,6 +2242,9 @@ const LandingPage = ({ user, onLogout }) => {
   // Called by PostJobView after a successful POST /api/jobs
   const handleJobPosted = (newJob) => {
     setJobs(prev => [newJob, ...prev])
+    fetchCandidates(newJob.id)
+      .then(data => setAllCandidates(data.candidates || []))
+      .catch(() => {})
   }
 
   // Called by MatchingMatrixView when recruiter closes a role
@@ -2568,7 +2571,7 @@ const LandingPage = ({ user, onLogout }) => {
           {/* MATCHING MATRIX */}
           {view === 'matches'    && <MatchingMatrixView job={selectedJob} onBack={() => {
             // Re-fetch candidates so Matches/Accepted counts in Job Roles are up to date
-            fetchCandidates()
+            fetchCandidates(selectedJob?.id)
               .then(data => setAllCandidates(data.candidates || []))
               .catch(() => {})
             setView('jobs')
