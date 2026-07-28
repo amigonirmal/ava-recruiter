@@ -186,7 +186,9 @@ export function rankCandidates({ jobId = 'unknown', jdWeights, candidates, missi
     return {
       candidate_id:     c.id,
       name:             c.name,
+      fullName:         c.fullName || c.name,
       initials:         c.initials,
+      talentScore:      c.talentScore ?? null,
       jobApplicationStatus: c.jobApplicationStatus,
       match_percentage,
       breakdown,

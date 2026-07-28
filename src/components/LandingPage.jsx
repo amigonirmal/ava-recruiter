@@ -422,12 +422,18 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                   {/* Name */}
                   <div style={{ marginTop:4 }}>
                     <div style={{ fontSize:9.5, fontWeight:800, color:st.nameColor, lineHeight:1.25 }}>
-                      {c.name}
+                      {c.fullName || c.name}
                     </div>
                     {/* Live weighted match score */}
                     <div style={{ fontSize:9, fontWeight:800, color:scoreCol, marginTop:2 }}>
                       {rc.match_percentage.toFixed(1)}% MATCH
                     </div>
+                    {/* Talent score out of 1000 */}
+                    {c.talentScore != null && (
+                      <div style={{ fontSize:7.5, fontWeight:700, color:'oklch(65% 0.15 195)', marginTop:2, letterSpacing:'0.04em' }}>
+                        ◈ {c.talentScore}<span style={{ fontSize:6.5, opacity:0.7 }}>/1000</span>
+                      </div>
+                    )}
                     {rc.data_completeness !== 'complete' && (
                       <div style={{ fontSize:7, color:'oklch(72% 0.15 80)', marginTop:1, lineHeight:1.3 }}>
                         ⚠ {rc.data_completeness}
@@ -579,8 +585,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                         color: isAccepted ? 'oklch(88% 0.03 195)' : 'oklch(58% 0.02 250)',
                         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                       }}>
-                        {rc._candidate.name}
+                        {rc._candidate.fullName || rc._candidate.name}
                       </div>
+                      {/* Talent score */}
+                      {rc._candidate.talentScore != null && (
+                        <div style={{ fontSize:7, fontWeight:700, color:'oklch(60% 0.15 195)', marginTop:1, letterSpacing:'0.03em' }}>
+                          ◈ {rc._candidate.talentScore}/1000
+                        </div>
+                      )}
                       {/* Match bar */}
                       <div style={{ height:3, background:'oklch(22% 0.02 250)', borderRadius:2, marginTop:2, overflow:'hidden' }}>
                         <div style={{
