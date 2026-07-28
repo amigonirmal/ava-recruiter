@@ -2593,8 +2593,9 @@ const LandingPage = ({ user, onLogout }) => {
               const experience = (raw.experience_history || []).map(e => ({ company: e.company || '', title: e.title || '', startYear: e.start_date ? parseInt(e.start_date.split('-')[0], 10) : null, endYear: e.end_date === 'Present' ? new Date().getFullYear() : (e.end_date ? parseInt(e.end_date.split('-')[0], 10) : null), duration: parseYears(e.duration), current: e.end_date === 'Present', relevantToRole: e.relevant_to_role, focus: e.focus || '' }))
               const education = (raw.education || []).map(e => ({ degree: e.degree || '', institution: e.institution || '', graduationYear: e.year || '' }))
               const skillData = (raw.technical_skills || []).map((s, i) => ({ name: s, level: Math.max(50, 92 - i * 5) }))
+              const caId = `ca${String(candidate.id).padStart(4, '0')}`
               setSelectedCandidateProfile({
-                personalInfo: { name: raw.full_name || `${raw.first_name || ''} ${raw.last_name || ''}`.trim(), title: raw.current_role_title || 'Candidate', email: raw.login_id || '', company: raw.current_company || '', candidateId: raw.candidate_id || '' },
+                personalInfo: { name: raw.full_name || `${raw.first_name || ''} ${raw.last_name || ''}`.trim(), title: raw.current_role_title || 'Candidate', email: raw.login_id || '', company: raw.current_company || '', candidateId: raw.candidate_id || caId },
                 skills: skillData,
                 experience,
                 education,
