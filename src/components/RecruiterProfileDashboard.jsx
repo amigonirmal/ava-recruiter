@@ -99,8 +99,18 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
           <div style={COLUMN}>
             <section style={CARD}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', background: 'oklch(28% 0.02 250)', border: '2px solid rgba(255,255,255,0.55)', flexShrink: 0 }}>
-                  <img src="/assets/profile-photo.avif" alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ width: 100, height: 100, borderRadius: '50%', overflow: 'hidden', background: 'oklch(28% 0.02 250)', border: '2px solid rgba(255,255,255,0.55)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {personalInfo?.candidateId ? (
+                    <img
+                      src={`/api/photos/${personalInfo.candidateId}`}
+                      alt={name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex' }}
+                    />
+                  ) : null}
+                  <div style={{ width: '100%', height: '100%', display: personalInfo?.candidateId ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 900, color: 'oklch(70% 0.19 195)' }}>
+                    {name.charAt(0)}
+                  </div>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>

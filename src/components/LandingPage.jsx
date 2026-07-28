@@ -6,6 +6,10 @@ import TalentHeatmap from './TalentHeatmap'
 import { rankCandidates } from '../services/rankingEngine'
 import RecruiterProfileDashboard from './RecruiterProfileDashboard'
 
+// ─── Candidate photo URL helper ─────────────────────────────────────────────
+// Converts numeric/string candidate id (e.g. "1") → "/api/photos/ca0001"
+const photoUrl = (id) => `/api/photos/ca${String(id).padStart(4, '0')}`
+
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
   <svg width={size} height={size} viewBox={vb} fill="none" stroke="currentColor"
@@ -381,11 +385,18 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                         width:30, height:30, borderRadius:'50%',
                         border:`1.5px solid ${st.ringColor}`,
                         background:'oklch(22% 0.02 250)',
+                        overflow:'hidden',
                         display:'flex', alignItems:'center', justifyContent:'center',
                         fontSize:12, fontWeight:800,
                         color: st.isGreen ? 'oklch(88% 0.03 195)' : 'oklch(55% 0.02 250)',
                       }}>
-                        {c.initials}
+                        <img
+                          src={photoUrl(c.id)}
+                          alt={c.name}
+                          style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                          onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'inline' }}
+                        />
+                        <span style={{ display:'none' }}>{c.initials}</span>
                       </div>
                       {/* Rank badge */}
                       <div style={{
@@ -547,11 +558,18 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                       width:18, height:18, borderRadius:'50%', flexShrink:0,
                       background:'oklch(22% 0.03 250)',
                       border:`1px solid ${isAccepted ? 'oklch(55% 0.17 145 / 0.7)' : 'oklch(35% 0.03 250)'}`,
+                      overflow:'hidden',
                       display:'flex', alignItems:'center', justifyContent:'center',
                       fontSize:7, fontWeight:800,
                       color: isAccepted ? 'oklch(80% 0.1 145)' : 'oklch(50% 0.02 250)',
                     }}>
-                      {rc._candidate.initials}
+                      <img
+                        src={photoUrl(rc._candidate.id)}
+                        alt={rc._candidate.name}
+                        style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                        onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'inline' }}
+                      />
+                      <span style={{ display:'none' }}>{rc._candidate.initials}</span>
                     </div>
 
                     {/* Name + bar */}
@@ -1055,6 +1073,10 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
   const matchPool = 18
   const compRange = jobDetails.salary || '£150k – £195k'
   const skillList = jobDetails.skills.split(',').map(skill => skill.trim()).filter(Boolean)
+  const skillChartData = skillList.map((skill, index) => ({
+    skill,
+    level: Math.max(40, 100 - index * 10),
+  }))
 
   // ── Shared panel styles ────────────────────────────────────────────────
   const panel = {
@@ -1249,9 +1271,17 @@ const HCMTView = ({ titleSuffix = '', jobTitle, onBack, actionLabel = 'SAVE CHAN
             </div>
             <div style={{ background:'oklch(15% 0.025 250)', border:'1px solid oklch(45% 0.16 195 / 0.35)', borderRadius:4, padding:'12px 14px', display:'grid', gap:8 }}>
               <div style={{ ...label12, fontSize:10, letterSpacing:'0.08em', color:'oklch(70% 0.02 250)' }}>SKILL SET VISUAL</div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-                {skillList.map(skill => (
-                  <span key={skill} style={{ padding:'5px 10px', borderRadius:999, border:'1px solid oklch(45% 0.16 195 / 0.35)', background:'oklch(20% 0.03 250)', color:'oklch(70% 0.15 195)', fontSize:11, fontWeight:700, letterSpacing:'0.03em' }}>{skill}</span>
+              <div style={{ display:'grid', gap:8 }}>
+                {skillChartData.map(({ skill, level }) => (
+                  <div key={skill} style={{ display:'grid', gridTemplateColumns:'minmax(0, 1fr) 44px', gap:8, alignItems:'center' }}>
+                    <div>
+                      <div style={{ fontSize:10, fontWeight:700, color:'oklch(88% 0.02 195)', marginBottom:4, letterSpacing:'0.03em' }}>{skill}</div>
+                      <div style={{ height:7, background:'oklch(22% 0.03 250)', borderRadius:999, overflow:'hidden' }}>
+                        <div style={{ width:`${level}%`, height:'100%', background:'oklch(70% 0.15 195)', borderRadius:999 }} />
+                      </div>
+                    </div>
+                    <div style={{ fontSize:10, fontWeight:800, color:'oklch(70% 0.15 195)', textAlign:'right' }}>{level}%</div>
+                  </div>
                 ))}
               </div>
             </div>

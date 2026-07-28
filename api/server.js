@@ -166,9 +166,16 @@ async function createJobCandidatesFile(job) {
     ...seed,
     jobId: job.id,
     jobTitle: job.title,
+    location: job.location || '',
+    salary: job.salary || '',
+    skills: Array.isArray(job.skills) ? job.skills : [],
     candidates: (seed.candidates || []).map(candidate => ({
       ...candidate,
       jobApplicationStatus: 'pending',
+      jobTitle: job.title,
+      location: job.location || '',
+      compensationRange: job.salary || '',
+      skills: Array.isArray(job.skills) ? job.skills : [],
     })),
   }
   await saveCandidates(jobCandidates, job.id)
@@ -354,6 +361,33 @@ app.get('/api/profiles/:id', async (req, res) => {
   const profile = await readProfileFromGcs(objectName)
   if (!profile) return res.status(404).json({ error: `profile "${id}" not found in GCS` })
   res.json(profile)
+})
+
+// GET /api/photos/:id — redirect to a short-lived signed URL for profilePhotos/<id>.jpg in GCS.
+// Falls back to 404 JSON when GCS is not configured (local dev).
+app.get('/api/photos/:id', async (req, res) => {
+  const { id } = req.params
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'invalid photo id' })
+  }
+  if (!gcsBucket) {
+    return res.status(404).json({ error: 'GCS not configured' })
+  }
+  try {
+    const objectName = `profilePhotos/${id}.jpg`
+    const file = gcsBucket.file(objectName)
+    const [exists] = await file.exists()
+    if (!exists) return res.status(404).json({ error: `photo "${id}" not found` })
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+    })
+    res.redirect(302, url)
+  } catch (err) {
+    console.error(`[photos] signed-url for "${id}" failed: ${err.message}`)
+    res.status(500).json({ error: 'failed to generate photo url' })
+  }
 })
 
 // PATCH /api/profiles/:id/job-search/:jobId — update a candidate's job_search entry
