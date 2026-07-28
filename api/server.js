@@ -363,8 +363,8 @@ app.get('/api/profiles/:id', async (req, res) => {
   res.json(profile)
 })
 
-// GET /api/photos/:id — redirect to a short-lived signed URL for profilePhotos/<id>.jpg in GCS.
-// Falls back to 404 JSON when GCS is not configured (local dev).
+// GET /api/photos/:id — stream profilePhotos/<id>.jpg directly from GCS.
+// Avoids needing signBlob IAM permission; uses the server's own GCS credentials.
 app.get('/api/photos/:id', async (req, res) => {
   const { id } = req.params
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
@@ -378,15 +378,18 @@ app.get('/api/photos/:id', async (req, res) => {
     const file = gcsBucket.file(objectName)
     const [exists] = await file.exists()
     if (!exists) return res.status(404).json({ error: `photo "${id}" not found` })
-    const [url] = await file.getSignedUrl({
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-    })
-    res.redirect(302, url)
+    const [metadata] = await file.getMetadata()
+    res.set('Content-Type', metadata.contentType || 'image/jpeg')
+    res.set('Cache-Control', 'public, max-age=3600')
+    file.createReadStream()
+      .on('error', err => {
+        console.error(`[photos] stream "${id}" failed: ${err.message}`)
+        if (!res.headersSent) res.status(500).json({ error: 'stream failed' })
+      })
+      .pipe(res)
   } catch (err) {
-    console.error(`[photos] signed-url for "${id}" failed: ${err.message}`)
-    res.status(500).json({ error: 'failed to generate photo url' })
+    console.error(`[photos] "${id}" failed: ${err.message}`)
+    if (!res.headersSent) res.status(500).json({ error: 'failed to serve photo' })
   }
 })
 
