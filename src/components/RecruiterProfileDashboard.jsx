@@ -103,7 +103,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   <img src="/assets/profile-photo.avif" alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
                   <div style={{ fontSize: 9, color: TEAL, letterSpacing: '0.1em', fontWeight: 600, marginTop: 3 }}>{role}</div>
                   {company && <div style={{ fontSize: 8, color: 'oklch(65% 0.02 250)', letterSpacing: '0.06em', marginTop: 2 }}>{company}</div>}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
@@ -154,10 +154,10 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   return (
                     <div key={c.key}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'oklch(88% 0.02 195)', letterSpacing: '0.02em' }}>{c.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'oklch(88% 0.02 195)', letterSpacing: '0.02em' }}>{c.label}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: c.color, minWidth: 32, textAlign: 'right' }}>{val.toFixed(1)}</span>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: c.color }}>{competencyTag(val)}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: c.color, minWidth: 32, textAlign: 'right' }}>{val.toFixed(1)}</span>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: c.color }}>{competencyTag(val)}</span>
                         </div>
                       </div>
                       <div style={{ position: 'relative', height: 18, display: 'flex', alignItems: 'center' }}>
@@ -184,13 +184,13 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 18, alignItems: 'center' }}>
                 <div style={{ display: 'grid', placeItems: 'center' }}>
                   <div style={{ width: 112, height: 112, borderRadius: '50%', border: '10px solid oklch(24% 0.03 250)', borderTopColor: GREEN, borderRightColor: GREEN, display: 'grid', placeItems: 'center', boxShadow: '0 0 18px oklch(68% 0.17 145 / 0.2)' }}>
-                    <div style={{ color: GREEN, fontWeight: 800, fontSize: 22 }}>{Math.round((derived.score / 1000) * 100)}%</div>
+                    <div style={{ color: GREEN, fontWeight: 800, fontSize: 14 }}>{Math.round((derived.score / 1000) * 100)}%</div>
                   </div>
                 </div>
                 <div>
                   <div style={SECTION_TITLE}>Talent Credit Score</div>
-                  <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1, marginTop: 8 }}>{derived.score}</div>
-                  <div style={{ color: GREEN, fontWeight: 800, marginTop: 4 }}>RATING: [{derived.rating.label}]</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1, marginTop: 8 }}>{derived.score}</div>
+                  <div style={{ fontSize: 11, color: GREEN, fontWeight: 800, marginTop: 4 }}>RATING: [{derived.rating.label}]</div>
                   <div style={DIVIDER} />
                   <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em' }}>VERIFICATION STATUS</div>
                   <div style={{ display: 'flex', gap: 18, marginTop: 10, fontSize: 10 }}>
@@ -207,10 +207,10 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 {experience.slice(0, 3).map((e, i) => (
                   <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'start', paddingBottom: 10, borderBottom: '1px solid oklch(24% 0.03 250)' }}>
                     <div>
-                      <div style={{ fontWeight: 800 }}>{(e.title || 'ROLE').toUpperCase()} AT {(e.company || 'ORG').toUpperCase()}</div>
+                      <div style={{ fontSize: 10, fontWeight: 800 }}>{(e.title || 'ROLE').toUpperCase()} AT {(e.company || 'ORG').toUpperCase()}</div>
                       <div style={{ fontSize: 10, color: 'oklch(60% 0.02 250)', marginTop: 2 }}>CORP API · {e.endYear || e.startYear || '2024'}-01-01</div>
                     </div>
-                    <div style={{ color: GREEN, fontWeight: 800, whiteSpace: 'nowrap' }}>+{[12, 8, 4][i] || 4} {['COMPLEXITY', 'VELOCITY', 'RISK MITIGATION'][i] || 'IMPACT'}</div>
+                    <div style={{ fontSize: 10, color: GREEN, fontWeight: 800, whiteSpace: 'nowrap' }}>+{[12, 8, 4][i] || 4} {['COMPLEXITY', 'VELOCITY', 'RISK MITIGATION'][i] || 'IMPACT'}</div>
                   </div>
                 ))}
               </div>
@@ -231,7 +231,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   <div style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>SENSITIVITY ANALYSIS</div>
                   <div style={{ marginTop: 8, border: '1px solid oklch(30% 0.03 250)', borderRadius: 4, padding: 12, background: 'oklch(16% 0.03 250)' }}>
                     <div style={{ color: GREEN, fontWeight: 800 }}>LEARN RUST:</div>
-                    <div style={{ marginTop: 6, fontSize: 12, lineHeight: 1.6 }}>TALENT SCORE +45,<br />MARKET ACCESS +12%</div>
+                    <div style={{ marginTop: 6, fontSize: 10, lineHeight: 1.6 }}>TALENT SCORE +45,<br />MARKET ACCESS +12%</div>
                   </div>
                 </div>
               </div>
@@ -247,16 +247,16 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   <div style={LABEL_SM}>Liabilities (Obsolescence Risk)</div>
                   <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <div style={{ width: 72, height: 72, borderRadius: '50%', border: '8px solid oklch(24% 0.03 250)', borderTopColor: GREEN, borderRightColor: 'oklch(70% 0.16 85)', borderBottomColor: 'oklch(62% 0.20 25)' }} />
-                    <div style={{ fontSize: 11, fontWeight: 800, color: 'oklch(70% 0.16 85)' }}>MODERATE (12%/YR)</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: 'oklch(70% 0.16 85)' }}>MODERATE (12%/YR)</div>
                   </div>
                 </div>
                 <div style={{ borderLeft: '2px solid #ff4d4f', paddingLeft: 10, background: 'oklch(16% 0.03 250)', padding: 10, borderRadius: 4 }}>
                   <div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>COMPLEXITY GAP</div>
-                  <div style={{ color: '#ff4d4f', fontWeight: 800, marginTop: 4 }}>LOW-LATENCY SYSTEMS (RED)</div>
+                  <div style={{ fontSize: 10, color: '#ff4d4f', fontWeight: 800, marginTop: 4 }}>LOW-LATENCY SYSTEMS (RED)</div>
                 </div>
                 <div>
                   <div style={LABEL_SM}>Residual Value</div>
-                  <div style={{ color: GREEN, fontWeight: 800, fontSize: 20, marginTop: 6 }}>MODERATE (58%)</div>
+                  <div style={{ color: GREEN, fontWeight: 800, fontSize: 11, marginTop: 6 }}>MODERATE (58%)</div>
                 </div>
               </div>
             </section>
@@ -265,9 +265,9 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               <div style={SECTION_TITLE}>Professional Equity <span style={{ color: 'oklch(55% 0.02 250)', fontWeight: 500 }}>(Net Worthiness)</span></div>
               <div style={DIVIDER} />
               <div style={{ display: 'grid', gap: 12 }}>
-                <div style={{ borderLeft: `2px solid ${GREEN}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RESIDUAL VALUE</div><div style={{ fontWeight: 800, marginTop: 4 }}>STRATEGIC THINKING, ETHICS</div></div>
-                <div style={{ borderLeft: `2px solid ${TEAL}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RETAINED EARNINGS (GOODWILL)</div><div style={{ fontWeight: 800, marginTop: 4 }}>PROJECT COMPLETIONS × {experience.length || 3}</div></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 }}><span style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>TOTAL EQUITY INCREASE (LTM):</span><span style={{ fontSize: 30, fontWeight: 900, color: GREEN }}>+26%</span></div>
+                <div style={{ borderLeft: `2px solid ${GREEN}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RESIDUAL VALUE</div><div style={{ fontSize: 10, fontWeight: 800, marginTop: 4 }}>STRATEGIC THINKING, ETHICS</div></div>
+                <div style={{ borderLeft: `2px solid ${TEAL}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RETAINED EARNINGS (GOODWILL)</div><div style={{ fontSize: 10, fontWeight: 800, marginTop: 4 }}>PROJECT COMPLETIONS × {experience.length || 3}</div></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 }}><span style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>TOTAL EQUITY INCREASE (LTM):</span><span style={{ fontSize: 16, fontWeight: 900, color: GREEN }}>+26%</span></div>
               </div>
             </section>
 
@@ -277,8 +277,8 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               <div style={{ display: 'grid', gap: 12 }}>
                 {education.map((e, i) => (
                   <div key={i} style={{ borderLeft: `2px solid ${GREEN}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}>
-                    <div style={{ fontWeight: 800 }}>{(e.degree || 'DEGREE').toUpperCase()}</div>
-                    <div style={{ fontSize: 12, color: 'oklch(70% 0.02 250)', marginTop: 3 }}>{(e.institution || 'INSTITUTION').toUpperCase()}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800 }}>{(e.degree || 'DEGREE').toUpperCase()}</div>
+                    <div style={{ fontSize: 10, color: 'oklch(70% 0.02 250)', marginTop: 3 }}>{(e.institution || 'INSTITUTION').toUpperCase()}</div>
                   </div>
                 ))}
               </div>
@@ -328,10 +328,10 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal(null)}>CLOSE</button>
               </div>
               <div style={{ display:'grid', gap:12 }}>
-                <div><div style={LABEL_SM}>FROM</div><div style={{ marginTop:4, fontSize:13 }}>recruiter@ava.com</div></div>
-                <div><div style={LABEL_SM}>TO</div><div style={{ marginTop:4, fontSize:13 }}>{email}</div></div>
-                <div><div style={LABEL_SM}>SUBJECT</div><div style={{ marginTop:4, fontSize:13 }}>AVA Recruiter Opportunity</div></div>
-                <div><div style={LABEL_SM}>DRAFT EMAIL</div><div style={{ marginTop:4, minHeight:120, background:'oklch(12% 0.02 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:6, padding:12, lineHeight:1.6 }}>{chatMessage}</div></div>
+                <div><div style={LABEL_SM}>FROM</div><div style={{ marginTop:4, fontSize:11 }}>recruiter@ava.com</div></div>
+                <div><div style={LABEL_SM}>TO</div><div style={{ marginTop:4, fontSize:11 }}>{email}</div></div>
+                <div><div style={LABEL_SM}>SUBJECT</div><div style={{ marginTop:4, fontSize:11 }}>AVA Recruiter Opportunity</div></div>
+                <div><div style={LABEL_SM}>DRAFT EMAIL</div><div style={{ marginTop:4, minHeight:120, background:'oklch(12% 0.02 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:6, padding:12, fontSize:11, lineHeight:1.6 }}>{chatMessage}</div></div>
                 <div style={{ display:'flex', justifyContent:'flex-end' }}><button type="button" className="rl-cta-btn" onClick={() => setActiveCommModal(null)}>SEND</button></div>
               </div>
             </div>
@@ -353,7 +353,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
             <div style={{ padding:'16px 14px', display:'grid', gap:14 }}>
               <div>
                 <div style={LABEL_SM}>PHONE NUMBER</div>
-                <div style={{ marginTop:6, fontSize:20, fontWeight:800, color:TEAL, letterSpacing:'0.05em' }}>{phone}</div>
+                <div style={{ marginTop:6, fontSize:13, fontWeight:800, color:TEAL, letterSpacing:'0.05em' }}>{phone}</div>
               </div>
               <div style={{ display:'flex', gap:8 }}>
                 <a href={`tel:${phone.replace(/\s+/g, '')}`} style={{ flex:1, textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', gap:6, background:'oklch(45% 0.17 145)', color:'#fff', fontWeight:800, fontSize:11, letterSpacing:'0.1em', padding:'10px 0', borderRadius:6, border:'none', cursor:'pointer' }}>
@@ -390,13 +390,13 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               {/* bot message */}
               <div style={{ display:'flex', alignItems:'flex-end', gap:7 }}>
                 <div style={{ width:24, height:24, borderRadius:'50%', background:'oklch(25% 0.05 195)', border:`1.5px solid ${TEAL}`, display:'grid', placeItems:'center', fontSize:11, flexShrink:0 }}>🤖</div>
-                <div style={{ maxWidth:'75%', background:'oklch(19% 0.04 250)', border:'1px solid oklch(30% 0.04 195 / 0.5)', borderRadius:'12px 12px 12px 2px', padding:'9px 12px', fontSize:12, lineHeight:1.55, color:'oklch(88% 0.01 250)' }}>
+                <div style={{ maxWidth:'75%', background:'oklch(19% 0.04 250)', border:'1px solid oklch(30% 0.04 195 / 0.5)', borderRadius:'12px 12px 12px 2px', padding:'9px 12px', fontSize:10, lineHeight:1.55, color:'oklch(88% 0.01 250)' }}>
                   {chatMessage}
                 </div>
               </div>
               {/* candidate reply placeholder */}
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <div style={{ maxWidth:'75%', background:`oklch(45% 0.16 195 / 0.18)`, border:`1px solid oklch(55% 0.16 195 / 0.3)`, borderRadius:'12px 12px 2px 12px', padding:'9px 12px', fontSize:12, lineHeight:1.55, color:TEAL }}>
+                <div style={{ maxWidth:'75%', background:`oklch(45% 0.16 195 / 0.18)`, border:`1px solid oklch(55% 0.16 195 / 0.3)`, borderRadius:'12px 12px 2px 12px', padding:'9px 12px', fontSize:10, lineHeight:1.55, color:TEAL }}>
                   Thanks for reaching out! I'd be happy to discuss this opportunity.
                 </div>
               </div>
@@ -413,7 +413,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
 
             {/* input row */}
             <div style={{ flexShrink:0, padding:'10px 12px', background:'oklch(17% 0.03 250)', borderTop:'1px solid oklch(26% 0.03 250)', display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ flex:1, background:'oklch(12% 0.025 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:20, padding:'7px 13px', fontSize:12, color:'oklch(45% 0.02 250)', letterSpacing:'0.02em', userSelect:'none' }}>
+              <div style={{ flex:1, background:'oklch(12% 0.025 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:20, padding:'7px 13px', fontSize:10, color:'oklch(45% 0.02 250)', letterSpacing:'0.02em', userSelect:'none' }}>
                 Type a message…
               </div>
               <button type="button" style={{ width:34, height:34, borderRadius:'50%', background:TEAL, border:'none', cursor:'default', display:'grid', placeItems:'center', fontSize:14, flexShrink:0 }}>➤</button>
