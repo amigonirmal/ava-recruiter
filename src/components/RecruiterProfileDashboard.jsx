@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 const CARD = {
   background: 'oklch(17% 0.03 250)',
@@ -68,6 +68,11 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
       }))
     : []
 
+  const [communicationStage, setCommunicationStage] = useState('Contacted')
+  const email = personalInfo?.email || 'candidate@ava.com'
+  const phone = personalInfo?.phone || '+44 20 7946 0958'
+  const chatMessage = encodeURIComponent(`Hi ${personalInfo?.name || 'there'}, this is AVA Recruiter. We'd like to discuss your profile and next steps for this opportunity.`)
+
   return (
     <div style={{ background: 'oklch(11% 0.025 250)', color: 'oklch(96% 0.005 250)', minHeight: '100vh', padding: 'clamp(12px, 2vw, 28px)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
       <div style={{ display: 'grid', gap: 14, maxWidth: 1500, margin: '0 auto' }}>
@@ -97,12 +102,12 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   <img src="/assets/profile-photo.avif" alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
-                  <div style={{ fontSize: 11, color: TEAL, letterSpacing: '0.1em', fontWeight: 600, marginTop: 3 }}>{role}</div>
-                  {company && <div style={{ fontSize: 10, color: 'oklch(65% 0.02 250)', letterSpacing: '0.06em', marginTop: 2 }}>{company}</div>}
+                  <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
+                  <div style={{ fontSize: 10, color: TEAL, letterSpacing: '0.1em', fontWeight: 600, marginTop: 3 }}>{role}</div>
+                  {company && <div style={{ fontSize: 9, color: 'oklch(65% 0.02 250)', letterSpacing: '0.06em', marginTop: 2 }}>{company}</div>}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                     {['PROFILE: 94%', 'GDPR ✓', 'ICAEW ✓'].map(chip => (
-                      <span key={chip} style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', padding: '3px 7px', borderRadius: 3, background: 'oklch(60% 0.19 195 / 0.1)', border: '1px solid oklch(60% 0.19 195 / 0.3)', color: TEAL }}>{chip}</span>
+                      <span key={chip} style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', padding: '3px 7px', borderRadius: 3, background: 'oklch(60% 0.19 195 / 0.1)', border: '1px solid oklch(60% 0.19 195 / 0.3)', color: TEAL }}>{chip}</span>
                     ))}
                   </div>
                 </div>
@@ -113,6 +118,25 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="rl-ghost-btn">28 JUL 2026 ▾</button>
                   <button className="rl-cta-btn">REPORTS</button>
+                </div>
+              </div>
+              <div style={{ ...DIVIDER, margin: '12px 0' }} />
+              <div style={{ display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.1em', fontWeight: 700, color: 'oklch(58% 0.02 250)' }}>COMMUNICATION</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <a className="rl-ghost-btn" href={`mailto:${email}?subject=${encodeURIComponent('AVA Recruiter Opportunity')}&body=${chatMessage}`} style={{ textDecoration: 'none' }}>EMAIL</a>
+                    <a className="rl-ghost-btn" href={`tel:${phone.replace(/\s+/g, '')}`} style={{ textDecoration: 'none' }}>CALL</a>
+                    <a className="rl-cta-btn" href={`mailto:${email}?subject=${encodeURIComponent('AVA Recruiter Chat')}&body=${chatMessage}`} style={{ textDecoration: 'none' }}>CHAT</a>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em' }}>COMMUNICATION STAGE</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {['Contacted', 'Called', 'Interview Scheduled', 'Interviewed'].map(stage => (
+                      <button key={stage} type="button" onClick={() => setCommunicationStage(stage)} style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', padding: '4px 8px', borderRadius: 999, cursor: 'pointer', background: communicationStage === stage ? 'oklch(60% 0.19 195 / 0.16)' : 'transparent', border: communicationStage === stage ? '1px solid oklch(60% 0.19 195 / 0.45)' : '1px solid oklch(35% 0.03 250)', color: communicationStage === stage ? TEAL : 'oklch(70% 0.02 250)' }}>{stage.toUpperCase()}</button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </section>
@@ -164,7 +188,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 </div>
                 <div>
                   <div style={SECTION_TITLE}>Talent Credit Score</div>
-                  <div style={{ fontSize: 52, fontWeight: 900, lineHeight: 1, marginTop: 8 }}>{derived.score}</div>
+                  <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1, marginTop: 8 }}>{derived.score}</div>
                   <div style={{ color: GREEN, fontWeight: 800, marginTop: 4 }}>RATING: [{derived.rating.label}]</div>
                   <div style={DIVIDER} />
                   <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em' }}>VERIFICATION STATUS</div>
@@ -231,7 +255,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 </div>
                 <div>
                   <div style={LABEL_SM}>Residual Value</div>
-                  <div style={{ color: GREEN, fontWeight: 800, fontSize: 22, marginTop: 6 }}>MODERATE (58%)</div>
+                  <div style={{ color: GREEN, fontWeight: 800, fontSize: 20, marginTop: 6 }}>MODERATE (58%)</div>
                 </div>
               </div>
             </section>
@@ -242,7 +266,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               <div style={{ display: 'grid', gap: 12 }}>
                 <div style={{ borderLeft: `2px solid ${GREEN}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RESIDUAL VALUE</div><div style={{ fontWeight: 800, marginTop: 4 }}>STRATEGIC THINKING, ETHICS</div></div>
                 <div style={{ borderLeft: `2px solid ${TEAL}`, background: 'oklch(16% 0.03 250)', padding: 12, borderRadius: 4 }}><div style={{ fontSize: 10, color: 'oklch(55% 0.02 250)' }}>RETAINED EARNINGS (GOODWILL)</div><div style={{ fontWeight: 800, marginTop: 4 }}>PROJECT COMPLETIONS × {experience.length || 3}</div></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 }}><span style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>TOTAL EQUITY INCREASE (LTM):</span><span style={{ fontSize: 34, fontWeight: 900, color: GREEN }}>+26%</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 }}><span style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>TOTAL EQUITY INCREASE (LTM):</span><span style={{ fontSize: 30, fontWeight: 900, color: GREEN }}>+26%</span></div>
               </div>
             </section>
 
