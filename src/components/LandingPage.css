@@ -4294,3 +4294,165 @@
   }
 }
 
+
+/* ════════════════════════════════════════════════════════════════
+   CANDIDATE PROFILE VIEW — RecruiterProfileDashboard
+   All layout classes extracted from inline styles so media
+   queries can properly reflow them on mobile.
+════════════════════════════════════════════════════════════════ */
+
+/* 3-col main grid — already handled by rpd-grid from previous pass */
+.rpd-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 0.95fr;
+  gap: 14px;
+  align-items: start;
+}
+
+/* Talent Credit Score ring + text */
+.rpd-score-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 18px;
+  align-items: center;
+}
+
+/* Growth Map: slope + sensitivity */
+.rpd-growth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Additional Recruiter Detail 3-col */
+.rpd-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+}
+
+/* Individual skill bar row */
+.rpd-skill-row {
+  display: grid;
+  grid-template-columns: 120px 1fr 40px;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Call popup — fixed position, right-anchored */
+.rpd-call-popup {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1100;
+  width: 300px;
+}
+
+/* Chat popup — fixed position, right-anchored */
+.rpd-chat-popup {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 1100;
+  width: 320px;
+  height: 420px;
+}
+
+/* ═══════════════════════════ ≤ 900px ═══════════════════════════ */
+@media (max-width: 900px) {
+  .rpd-grid {
+    grid-template-columns: 1fr;
+  }
+  .rpd-detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ═══════════════════════════ ≤ 600px ═══════════════════════════ */
+@media (max-width: 600px) {
+  /* Score card: ring stacks above text */
+  .rpd-score-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  /* Growth map: slope + sensitivity stack */
+  .rpd-growth-row {
+    grid-template-columns: 1fr;
+  }
+  /* Detail grid: 1 col */
+  .rpd-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Skill rows: label wraps above bar */
+  .rpd-skill-row {
+    grid-template-columns: 1fr 32px;
+    grid-template-rows: auto auto;
+  }
+  .rpd-skill-row span:first-child {
+    grid-column: 1 / -1;
+  }
+  /* Call popup: full-width bottom sheet */
+  .rpd-call-popup {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 14px 14px 0 0;
+  }
+  /* Chat popup: near-full-screen bottom sheet */
+  .rpd-chat-popup {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    height: min(480px, 80dvh);
+    border-radius: 14px 14px 0 0;
+  }
+  /* Communication buttons: wrap to 2 per row */
+  .rpd-comm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  /* Stage bar: wrap into 2×2 grid */
+  .rpd-stage-bar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    border-radius: 6px;
+  }
+  .rpd-stage-bar button {
+    border-right: none !important;
+    border-bottom: 1px solid oklch(40% 0.1 195 / 0.3);
+  }
+  .rpd-stage-bar button:nth-child(odd) {
+    border-right: 1px solid oklch(40% 0.1 195 / 0.3) !important;
+  }
+  .rpd-stage-bar button:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+}
+
+/* ═══════════════════════════ ≤ 420px ═══════════════════════════ */
+@media (max-width: 420px) {
+  /* Communication header: stack label above buttons */
+  .rpd-comm-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+  .rpd-comm-actions {
+    width: 100%;
+  }
+  /* Stage bar: single column */
+  .rpd-stage-bar {
+    grid-template-columns: 1fr !important;
+  }
+  .rpd-stage-bar button {
+    border-right: none !important;
+    border-bottom: 1px solid oklch(40% 0.1 195 / 0.3);
+  }
+  .rpd-stage-bar button:last-child {
+    border-bottom: none;
+  }
+}
+

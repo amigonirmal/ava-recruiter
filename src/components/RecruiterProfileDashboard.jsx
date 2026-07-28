@@ -255,7 +255,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
 
           <div style={COLUMN}>
             <section style={CARD}>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 18, alignItems: 'center' }}>
+              <div className="rpd-score-row">
                 <div style={{ display: 'grid', placeItems: 'center' }}>
                   <div style={{ width: 112, height: 112, borderRadius: '50%', border: '10px solid oklch(24% 0.03 250)', borderTopColor: GREEN, borderRightColor: GREEN, display: 'grid', placeItems: 'center', boxShadow: '0 0 18px oklch(68% 0.17 145 / 0.2)' }}>
                     <div style={{ color: GREEN, fontWeight: 800, fontSize: 14 }}>{Math.round((derived.score / 1000) * 100)}%</div>
@@ -293,7 +293,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
             <section style={CARD}>
               <div style={SECTION_TITLE}>Forward-Looking Analytics <span style={{ color: 'oklch(55% 0.02 250)', fontWeight: 500 }}>(Growth Map)</span></div>
               <div style={DIVIDER} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="rpd-growth-row">
                 <div>
                   <div style={{ fontSize: 10, color: 'oklch(75% 0.02 250)' }}>THE SLOPE ANALYSIS</div>
                   <svg viewBox="0 0 180 70" width="100%" height="80" preserveAspectRatio="none" style={{ marginTop: 8 }}>
@@ -405,12 +405,12 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
         <section style={CARD}>
           <div style={SECTION_TITLE}>Additional Recruiter Detail</div>
           <div style={DIVIDER} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+          <div className="rpd-detail-grid">
             <div>
               <div style={LABEL_SM}>Technical Skills</div>
               <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
                 {skills.map(skill => (
-                  <div key={skill.name} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 40px', gap: 8, alignItems: 'center' }}>
+                  <div key={skill.name} className="rpd-skill-row">
                     <span style={{ fontSize: 11 }}>{skill.name}</span>
                     <div style={{ height: 6, background: 'oklch(22% 0.02 250)', borderRadius: 999, overflow: 'hidden' }}><div style={{ width: `${skill.level}%`, height: '100%', background: TEAL }} /></div>
                     <span style={{ fontSize: 11, color: TEAL, textAlign: 'right' }}>{skill.level}%</span>
@@ -456,7 +456,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
 
         {/* ── CALL popup (bottom-right, compact) ── */}
         {activeCommModal === 'call' && (
-          <div style={{ position:'fixed', bottom:28, right:28, zIndex:1100, width:300, background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.55)', overflow:'hidden' }}>
+          <div className="rpd-call-popup" style={{ background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.55)', overflow:'hidden' }}>
             {/* header */}
             <div style={{ background:'oklch(19% 0.04 250)', padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -485,7 +485,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
 
         {/* ── CHAT bot popup (bottom-right) ── */}
         {activeCommModal === 'chat' && (
-          <div style={{ position:'fixed', bottom:28, right:28, zIndex:1100, width:320, height:420, display:'flex', flexDirection:'column', background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:14, boxShadow:'0 8px 40px rgba(0,0,0,0.6)', overflow:'hidden' }}>
+          <div className="rpd-chat-popup" style={{ display:'flex', flexDirection:'column', background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:14, boxShadow:'0 8px 40px rgba(0,0,0,0.6)', overflow:'hidden' }}>
             {/* header bar */}
             <div style={{ background:'oklch(19% 0.04 250)', padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
               <div style={{ display:'flex', alignItems:'center', gap:9 }}>
