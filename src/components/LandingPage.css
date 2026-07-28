@@ -4017,6 +4017,18 @@
   border-color: oklch(55% 0.17 145 / 0.5);
   background: oklch(68% 0.17 145 / 0.08);
 }
+.sc-status-pill--red {
+  color: oklch(65% 0.22 25);
+  border-color: oklch(55% 0.2 25 / 0.5);
+  background: oklch(62% 0.2 25 / 0.08);
+}
+.sc-row--rejected {
+  opacity: 0.7;
+}
+.sc-row--rejected .sc-cand-name {
+  text-decoration: line-through;
+  text-decoration-color: oklch(55% 0.2 25 / 0.6);
+}
 
 /* Recommendation cell */
 .sc-rec-text {

@@ -863,12 +863,13 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                   {rankedList.map((rc) => {
                     const c = rc._candidate
                     const isAccepted = c.jobApplicationStatus === 'accepted'
+                    const isRejected = c.jobApplicationStatus === 'rejected'
                     const matchCol = rc.match_percentage >= 70
                       ? '#00e6d2'
                       : rc.match_percentage >= 45 ? '#f59e0b' : '#ff3b4e'
                     const ratingLabel = rc.match_percentage >= 90 ? 'AA+' : rc.match_percentage >= 80 ? 'AA' : rc.match_percentage >= 70 ? 'A+' : rc.match_percentage >= 55 ? 'A' : 'B'
                     return (
-                      <tr key={rc.candidate_id} className={`sc-row${isAccepted ? ' sc-row--accepted' : ''}`}>
+                      <tr key={rc.candidate_id} className={`sc-row${isAccepted ? ' sc-row--accepted' : ''}${isRejected ? ' sc-row--rejected' : ''}`}>
 
                         {/* Rank */}
                         <td className="sc-td sc-td-rank">
@@ -961,8 +962,8 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
 
                         {/* Application status */}
                         <td className="sc-td sc-td-status">
-                          <span className={`sc-status-pill${isAccepted ? ' sc-status-pill--green' : ''}`}>
-                            {isAccepted ? '● ACCEPTED' : '○ PENDING'}
+                          <span className={`sc-status-pill${isAccepted ? ' sc-status-pill--green' : isRejected ? ' sc-status-pill--red' : ''}`}>
+                            {isAccepted ? '● ACCEPTED' : isRejected ? '✕ REJECTED' : '○ PENDING'}
                           </span>
                         </td>
 
