@@ -74,6 +74,27 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
   const phone = personalInfo?.phone || '+44 20 7946 0958'
   const chatMessage = `Hi ${personalInfo?.name || 'there'}, this is AVA Recruiter. We'd like to discuss your profile and next steps for this opportunity.`
 
+  const [activityLog, setActivityLog] = useState([
+    { time: '09:14', date: 'TODAY', action: 'Profile viewed', actor: 'RECRUITER', type: 'view' },
+    { time: '09:15', date: 'TODAY', action: 'Added to shortlist', actor: 'RECRUITER', type: 'shortlist' },
+  ])
+
+  function logActivity(action, type) {
+    const now = new Date()
+    const time = now.toTimeString().slice(0, 5)
+    setActivityLog(prev => [{ time, date: 'TODAY', action, actor: 'RECRUITER', type }, ...prev])
+  }
+
+  function handleStageChange(stage) {
+    setCommunicationStage(stage)
+    logActivity(`Stage set to "${stage}"`, 'stage')
+  }
+
+  function handleCommOpen(channel) {
+    setActiveCommModal(channel)
+    logActivity(`Opened ${channel.toUpperCase()} composer`, 'comm')
+  }
+
   return (
     <div style={{ background: 'oklch(11% 0.025 250)', color: 'oklch(96% 0.005 250)', minHeight: '100vh', padding: 'clamp(12px, 2vw, 28px)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
       <div style={{ display: 'grid', gap: 14, maxWidth: 1500, margin: '0 auto' }}>
@@ -133,20 +154,63 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
               </div>
               <div style={{ ...DIVIDER, margin: '12px 0' }} />
               <div style={{ display: 'grid', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 10, letterSpacing: '0.1em', fontWeight: 700, color: 'oklch(58% 0.02 250)' }}>COMMUNICATION</div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal('email')}>EMAIL</button>
-                    <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal('call')}>CALL</button>
-                    <button type="button" className="rl-cta-btn" onClick={() => setActiveCommModal('chat')}>CHAT</button>
+                {/* ── COMMUNICATION highlighted section ── */}
+                <div style={{ margin: '0 -18px -18px', marginTop: 4, background: 'oklch(14% 0.05 195 / 0.55)', border: '1px solid oklch(60% 0.19 195 / 0.35)', borderRadius: '0 0 6px 6px', padding: '14px 18px 16px', boxShadow: 'inset 0 1px 0 oklch(60% 0.19 195 / 0.2), 0 0 20px oklch(60% 0.22 195 / 0.1)' }}>
+                  {/* section header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: TEAL, boxShadow: `0 0 7px ${TEAL}`, display: 'inline-block' }} />
+                      <span style={{ fontSize: 10, letterSpacing: '0.12em', fontWeight: 800, color: TEAL, textTransform: 'uppercase' }}>Communication</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                      <button type="button" className="rl-ghost-btn" onClick={() => handleCommOpen('email')}>EMAIL</button>
+                      <button type="button" className="rl-ghost-btn" onClick={() => handleCommOpen('call')}>CALL</button>
+                      <button type="button" className="rl-cta-btn" onClick={() => handleCommOpen('chat')}>CHAT</button>
+                    </div>
                   </div>
-                </div>
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <div style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.08em' }}>COMMUNICATION STAGE</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['Contacted', 'Called', 'Interview Scheduled', 'Interviewed'].map(stage => (
-                      <button key={stage} type="button" onClick={() => setCommunicationStage(stage)} style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', padding: '4px 8px', borderRadius: 999, cursor: 'pointer', background: communicationStage === stage ? 'oklch(60% 0.19 195 / 0.16)' : 'transparent', border: communicationStage === stage ? '1px solid oklch(60% 0.19 195 / 0.45)' : '1px solid oklch(35% 0.03 250)', color: communicationStage === stage ? TEAL : 'oklch(70% 0.02 250)' }}>{stage.toUpperCase()}</button>
-                    ))}
+
+                  {/* contact quick-info */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(20% 0.04 195 / 0.5)', border: '1px solid oklch(50% 0.16 195 / 0.25)', borderRadius: 4, padding: '4px 9px' }}>
+                      <span style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.06em' }}>EMAIL</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: TEAL }}>{email}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(20% 0.04 195 / 0.5)', border: '1px solid oklch(50% 0.16 195 / 0.25)', borderRadius: 4, padding: '4px 9px' }}>
+                      <span style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.06em' }}>PHONE</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: TEAL }}>{phone}</span>
+                    </div>
+                  </div>
+
+                  {/* stage pipeline */}
+                  <div style={{ fontSize: 9, color: 'oklch(60% 0.06 195)', letterSpacing: '0.09em', fontWeight: 700, marginBottom: 7 }}>COMMUNICATION STAGE</div>
+                  <div style={{ display: 'flex', gap: 0, flexWrap: 'nowrap', overflow: 'hidden', borderRadius: 6, border: '1px solid oklch(40% 0.1 195 / 0.3)' }}>
+                    {['Contacted', 'Called', 'Interview Scheduled', 'Interviewed'].map((stage, idx, arr) => {
+                      const active = communicationStage === stage
+                      const past = arr.indexOf(communicationStage) > idx
+                      return (
+                        <button
+                          key={stage}
+                          type="button"
+                          onClick={() => handleStageChange(stage)}
+                          style={{
+                            flex: 1,
+                            fontSize: 8,
+                            fontWeight: 700,
+                            letterSpacing: '0.04em',
+                            padding: '6px 4px',
+                            cursor: 'pointer',
+                            background: active ? TEAL : past ? 'oklch(40% 0.12 195 / 0.25)' : 'transparent',
+                            border: 'none',
+                            borderRight: idx < arr.length - 1 ? '1px solid oklch(40% 0.1 195 / 0.3)' : 'none',
+                            color: active ? 'oklch(10% 0.02 250)' : past ? TEAL : 'oklch(55% 0.04 250)',
+                            transition: 'background 0.15s',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {stage.toUpperCase()}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -293,6 +357,48 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 ))}
               </div>
             </section>
+
+            {/* ── ACTIVITY LOG ── */}
+            <section style={{ ...CARD, borderColor: 'oklch(45% 0.12 80 / 0.4)', boxShadow: '0 0 0 1px oklch(60% 0.15 80 / 0.08), 0 0 18px oklch(60% 0.15 80 / 0.12)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'oklch(70% 0.16 85)', boxShadow: '0 0 7px oklch(70% 0.16 85)', display: 'inline-block' }} />
+                  <span style={{ ...SECTION_TITLE, color: 'oklch(70% 0.16 85)' }}>Activity Log</span>
+                </div>
+                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'oklch(45% 0.02 250)' }}>{activityLog.length} EVENTS</span>
+              </div>
+              <div style={DIVIDER} />
+              <div style={{ display: 'grid', gap: 0, maxHeight: 220, overflowY: 'auto' }}>
+                {activityLog.map((entry, i) => {
+                  const typeColor = entry.type === 'comm' ? TEAL : entry.type === 'stage' ? 'oklch(70% 0.16 85)' : entry.type === 'shortlist' ? GREEN : 'oklch(55% 0.12 250)'
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '42px 1fr',
+                        gap: 10,
+                        alignItems: 'start',
+                        padding: '8px 0',
+                        borderBottom: i < activityLog.length - 1 ? '1px solid oklch(22% 0.02 250)' : 'none',
+                      }}
+                    >
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: 'oklch(55% 0.02 250)', letterSpacing: '0.04em' }}>{entry.time}</div>
+                        <div style={{ fontSize: 8, color: 'oklch(38% 0.02 250)', letterSpacing: '0.04em' }}>{entry.date}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: typeColor, boxShadow: `0 0 5px ${typeColor}`, flexShrink: 0, marginTop: 3 }} />
+                        <div>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'oklch(85% 0.01 250)' }}>{entry.action}</div>
+                          <div style={{ fontSize: 8, color: 'oklch(45% 0.02 250)', letterSpacing: '0.06em', marginTop: 1 }}>{entry.actor}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
           </div>
         </main>
 
@@ -342,7 +448,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 <div><div style={LABEL_SM}>TO</div><div style={{ marginTop:4, fontSize:11 }}>{email}</div></div>
                 <div><div style={LABEL_SM}>SUBJECT</div><div style={{ marginTop:4, fontSize:11 }}>AVA Recruiter Opportunity</div></div>
                 <div><div style={LABEL_SM}>DRAFT EMAIL</div><div style={{ marginTop:4, minHeight:120, background:'oklch(12% 0.02 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:6, padding:12, fontSize:11, lineHeight:1.6 }}>{chatMessage}</div></div>
-                <div style={{ display:'flex', justifyContent:'flex-end' }}><button type="button" className="rl-cta-btn" onClick={() => setActiveCommModal(null)}>SEND</button></div>
+                <div style={{ display:'flex', justifyContent:'flex-end' }}><button type="button" className="rl-cta-btn" onClick={() => { logActivity(`Email sent to ${email}`, 'comm'); setActiveCommModal(null) }}>SEND</button></div>
               </div>
             </div>
           </div>
