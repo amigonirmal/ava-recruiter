@@ -140,6 +140,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
 
   // Card visual style by status
   // accepted → green border + glow
+  // rejected → red border + glow
   // pending  → grey/dimmed
   const cardStyle = (c) => {
     if (c.jobApplicationStatus === 'accepted') return {
@@ -150,6 +151,17 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
       nameColor:  'oklch(90% 0.06 145)',
       opacity:    1,
       isGreen:    true,
+      isRed:      false,
+    }
+    if (c.jobApplicationStatus === 'rejected') return {
+      border:     '1px solid oklch(62% 0.22 25 / 0.85)',
+      baseShadow: '0 0 14px oklch(58% 0.22 25 / 0.3)',
+      ringColor:  'oklch(62% 0.22 25)',
+      chartColor: 'oklch(58% 0.18 25)',
+      nameColor:  'oklch(80% 0.06 25)',
+      opacity:    0.85,
+      isGreen:    false,
+      isRed:      true,
     }
     // not_responded — greyed out
     return {
@@ -160,6 +172,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
       nameColor:  'oklch(52% 0.02 250)',
       opacity:    0.55,
       isGreen:    false,
+      isRed:      false,
     }
   }
 
@@ -442,8 +455,9 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                   </div>
 
                   {/* Status badge */}
-                  <div style={{ fontSize:7, fontWeight:800, letterSpacing:'0.07em', color: st.isGreen ? 'oklch(70% 0.17 145)' : 'oklch(44% 0.03 250)', textTransform:'uppercase' }}>
-                    {st.isGreen ? '● ACCEPTED' : '○ PENDING'}
+                  <div style={{ fontSize:7, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase',
+                    color: st.isGreen ? 'oklch(70% 0.17 145)' : st.isRed ? 'oklch(62% 0.22 25)' : 'oklch(44% 0.03 250)' }}>
+                    {st.isGreen ? '● ACCEPTED' : st.isRed ? '✕ REJECTED' : '○ PENDING'}
                   </div>
 
                   {/* Sparklines */}
@@ -517,7 +531,12 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
               LIVE RANKING LEADERBOARD
             </div>
             <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8, letterSpacing:'0.04em' }}>
-              ACCEPTED PROFILES · {rankedList.filter(r => r._candidate.jobApplicationStatus === 'accepted').length} CANDIDATES
+              {rankedList.filter(r => r._candidate.jobApplicationStatus === 'accepted').length} ACCEPTED
+              {rankedList.filter(r => r._candidate.jobApplicationStatus === 'rejected').length > 0 && (
+                <span style={{ color:'oklch(62% 0.22 25)', marginLeft:6 }}>
+                  · {rankedList.filter(r => r._candidate.jobApplicationStatus === 'rejected').length} REJECTED
+                </span>
+              )}
             </div>
 
             {/* Column headers */}
@@ -529,24 +548,28 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
               <span style={{ width:46, textAlign:'right' }}>MATCH</span>
             </div>
 
-            {/* Accepted-only ranked rows */}
+            {/* Accepted + Rejected ranked rows */}
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              {rankedList.filter(rc => rc._candidate.jobApplicationStatus === 'accepted').map((rc, idx) => {
+              {rankedList.filter(rc => ['accepted','rejected'].includes(rc._candidate.jobApplicationStatus)).map((rc, idx) => {
                 const isSelected = selectedCandidate?.id === rc._candidate.id
-                const isAccepted = true
+                const isAccepted = rc._candidate.jobApplicationStatus === 'accepted'
+                const isRejected = rc._candidate.jobApplicationStatus === 'rejected'
                 const scoreCol = rc.match_percentage >= 70
                   ? 'oklch(70% 0.17 145)'
                   : rc.match_percentage >= 45
                     ? 'oklch(75% 0.15 80)'
                     : 'oklch(65% 0.18 25)'
                 const barW = Math.max(2, rc.match_percentage)
+                const avatarBorder = isAccepted ? 'oklch(55% 0.17 145 / 0.7)' : isRejected ? 'oklch(62% 0.22 25 / 0.7)' : 'oklch(35% 0.03 250)'
+                const avatarColor  = isAccepted ? 'oklch(80% 0.1 145)' : isRejected ? 'oklch(80% 0.1 25)' : 'oklch(50% 0.02 250)'
+                const nameColor    = isAccepted ? 'oklch(88% 0.03 195)' : isRejected ? 'oklch(80% 0.06 25)' : 'oklch(58% 0.02 250)'
                 return (
                   <div key={rc.candidate_id}
                     style={{
                       display:'flex', alignItems:'center', gap:6,
                       padding:'4px 6px', borderRadius:3, cursor:'pointer',
-                      background: isSelected ? 'oklch(22% 0.04 195 / 0.5)' : 'transparent',
-                      border: isSelected ? '1px solid oklch(45% 0.16 195 / 0.5)' : '1px solid transparent',
+                      background: isSelected ? (isRejected ? 'oklch(22% 0.04 25 / 0.5)' : 'oklch(22% 0.04 195 / 0.5)') : 'transparent',
+                      border: isSelected ? `1px solid ${isRejected ? 'oklch(45% 0.18 25 / 0.5)' : 'oklch(45% 0.16 195 / 0.5)'}` : '1px solid transparent',
                       transition:'background 0.15s',
                     }}
                     onClick={() => setSelectedCandidate(isSelected ? null : rc._candidate)}
@@ -563,11 +586,11 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                     <div style={{
                       width:18, height:18, borderRadius:'50%', flexShrink:0,
                       background:'oklch(22% 0.03 250)',
-                      border:`1px solid ${isAccepted ? 'oklch(55% 0.17 145 / 0.7)' : 'oklch(35% 0.03 250)'}`,
+                      border:`1px solid ${avatarBorder}`,
                       overflow:'hidden',
                       display:'flex', alignItems:'center', justifyContent:'center',
                       fontSize:7, fontWeight:800,
-                      color: isAccepted ? 'oklch(80% 0.1 145)' : 'oklch(50% 0.02 250)',
+                      color: avatarColor,
                     }}>
                       <img
                         src={photoUrl(rc._candidate.id)}
@@ -582,14 +605,14 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{
                         fontSize:9, fontWeight:700, lineHeight:1.2,
-                        color: isAccepted ? 'oklch(88% 0.03 195)' : 'oklch(58% 0.02 250)',
+                        color: nameColor,
                         whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                       }}>
                         {rc._candidate.fullName || rc._candidate.name}
                       </div>
                       {/* Talent score */}
                       {rc._candidate.talentScore != null && (
-                        <div style={{ fontSize:7, fontWeight:700, color:'oklch(60% 0.15 195)', marginTop:1, letterSpacing:'0.03em' }}>
+                        <div style={{ fontSize:7, fontWeight:700, color: isRejected ? 'oklch(55% 0.15 25)' : 'oklch(60% 0.15 195)', marginTop:1, letterSpacing:'0.03em' }}>
                           ◈ {rc._candidate.talentScore}/1000
                         </div>
                       )}
@@ -597,16 +620,22 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                       <div style={{ height:3, background:'oklch(22% 0.02 250)', borderRadius:2, marginTop:2, overflow:'hidden' }}>
                         <div style={{
                           width:`${barW}%`, height:'100%', borderRadius:2,
-                          background: scoreCol,
+                          background: isRejected ? 'oklch(58% 0.18 25)' : scoreCol,
                           transition:'width 0.25s ease',
                         }}/>
                       </div>
                     </div>
 
-                    {/* Match % */}
-                    <span style={{ fontSize:9, fontWeight:800, color:scoreCol, width:46, textAlign:'right', flexShrink:0 }}>
-                      {rc.match_percentage.toFixed(1)}%
-                    </span>
+                    {/* Match % or REJECTED label */}
+                    {isRejected ? (
+                      <span style={{ fontSize:8, fontWeight:800, color:'oklch(62% 0.22 25)', width:46, textAlign:'right', flexShrink:0, letterSpacing:'0.04em' }}>
+                        ✕ REJECT
+                      </span>
+                    ) : (
+                      <span style={{ fontSize:9, fontWeight:800, color:scoreCol, width:46, textAlign:'right', flexShrink:0 }}>
+                        {rc.match_percentage.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                 )
               })}
