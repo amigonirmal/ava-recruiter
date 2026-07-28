@@ -2235,14 +2235,33 @@ const LandingPage = ({ user, onLogout }) => {
   const [closedJobs, setClosedJobs]   = useState([])
   const [jobsTab, setJobsTab]         = useState('open') // 'open' | 'closed'
   const [allCandidates, setAllCandidates] = useState([])
+  const [jobCountsMap, setJobCountsMap]   = useState({}) // { [jobId]: { matches, accepted } }
   const [selectedCandidateProfile, setSelectedCandidateProfile] = useState(null)
 
-  // Load jobs + candidates from API on mount
+  // Load jobs on mount, then fetch per-job candidate counts in parallel
   useEffect(() => {
     fetchJobs()
       .then(data => {
-        setJobs(data.filter(j => j.status !== 'closed'))
-        setClosedJobs(data.filter(j => j.status === 'closed'))
+        const open   = data.filter(j => j.status !== 'closed')
+        const closed = data.filter(j => j.status === 'closed')
+        setJobs(open)
+        setClosedJobs(closed)
+        // Fetch candidate counts for every job in parallel
+        const allJobs = [...open, ...closed]
+        Promise.all(
+          allJobs.map(j =>
+            fetchCandidates(j.id)
+              .then(d => {
+                const cands = d.candidates || []
+                return { id: j.id, matches: cands.length, accepted: cands.filter(c => c.jobApplicationStatus === 'accepted').length }
+              })
+              .catch(() => ({ id: j.id, matches: 0, accepted: 0 }))
+          )
+        ).then(results => {
+          const map = {}
+          results.forEach(r => { map[r.id] = { matches: r.matches, accepted: r.accepted } })
+          setJobCountsMap(map)
+        })
       })
       .catch(err => console.error('fetchJobs:', err))
       .finally(() => setJobsLoading(false))
@@ -2251,16 +2270,19 @@ const LandingPage = ({ user, onLogout }) => {
       .catch(err => console.error('fetchCandidates (landing):', err))
   }, [])
 
-  // Total ranked candidates = all candidates (the matrix ranks everyone per job)
+  // Global totals — used only for the dashboard summary stats
   const totalCandidates = allCandidates.length
-  // Accepted count = candidates with jobApplicationStatus === 'accepted'
   const totalAccepted   = allCandidates.filter(c => c.jobApplicationStatus === 'accepted').length
 
   // Called by PostJobView after a successful POST /api/jobs
   const handleJobPosted = (newJob) => {
     setJobs(prev => [newJob, ...prev])
     fetchCandidates(newJob.id)
-      .then(data => setAllCandidates(data.candidates || []))
+      .then(data => {
+        setAllCandidates(data.candidates || [])
+        const cands = data.candidates || []
+        setJobCountsMap(prev => ({ ...prev, [newJob.id]: { matches: cands.length, accepted: cands.filter(c => c.jobApplicationStatus === 'accepted').length } }))
+      })
       .catch(() => {})
   }
 
@@ -2447,7 +2469,7 @@ const LandingPage = ({ user, onLogout }) => {
                 </section>
                 <section className="rl-card">
                   <div className="rl-card-header"><div className="rl-card-title">ACTIVE JOB ROLES</div><div className="rl-card-sub">AI MATCH PIPELINE</div></div>
-                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.id||j.title} {...j} matchesCount={totalCandidates} acceptedCount={totalAccepted} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
+                  <div className="rl-jobs-grid">{jobs.slice(0,4).map(j=><JobCard key={j.id||j.title} {...j} matchesCount={jobCountsMap[j.id]?.matches ?? totalCandidates} acceptedCount={jobCountsMap[j.id]?.accepted ?? 0} onReviewMatches={()=>{ setSelectedJob(j); setView('matches') }}/>)}</div>
                 </section>
               </div>
               <div className="rl-two-col">
@@ -2536,8 +2558,8 @@ const LandingPage = ({ user, onLogout }) => {
                 <div className="rl-jobs-full-grid">
                   {jobs.map(j => (
                     <JobCard key={j.id || j.title} {...j}
-                      matchesCount={totalCandidates}
-                      acceptedCount={totalAccepted}
+                      matchesCount={jobCountsMap[j.id]?.matches ?? totalCandidates}
+                      acceptedCount={jobCountsMap[j.id]?.accepted ?? 0}
                       onReviewMatches={() => { setSelectedJob(j); setView('matches') }}
                     />
                   ))}
@@ -2564,11 +2586,11 @@ const LandingPage = ({ user, onLogout }) => {
                       )}
                       <div className="rl-job-stats">
                         <div className="rl-job-stat">
-                          <span style={{ color:'var(--color-teal)' }}>{totalCandidates}</span>
+                          <span style={{ color:'var(--color-teal)' }}>{jobCountsMap[j.id]?.matches ?? '—'}</span>
                           <label>Matches</label>
                         </div>
                         <div className="rl-job-stat">
-                          <span style={{ color:'#22C55E' }}>{totalAccepted}</span>
+                          <span style={{ color:'#22C55E' }}>{jobCountsMap[j.id]?.accepted ?? '—'}</span>
                           <label>Accepted</label>
                         </div>
                       </div>
@@ -2589,7 +2611,13 @@ const LandingPage = ({ user, onLogout }) => {
           {view === 'matches'    && <MatchingMatrixView job={selectedJob} onBack={() => {
             // Re-fetch candidates so Matches/Accepted counts in Job Roles are up to date
             fetchCandidates(selectedJob?.id)
-              .then(data => setAllCandidates(data.candidates || []))
+              .then(data => {
+                setAllCandidates(data.candidates || [])
+                const cands = data.candidates || []
+                if (selectedJob?.id) {
+                  setJobCountsMap(prev => ({ ...prev, [selectedJob.id]: { matches: cands.length, accepted: cands.filter(c => c.jobApplicationStatus === 'accepted').length } }))
+                }
+              })
               .catch(() => {})
             setView('jobs')
           }} onClose={handleCloseJob} onOpenCandidateProfile={async (candidate) => {
