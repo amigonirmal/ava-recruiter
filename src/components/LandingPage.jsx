@@ -4,6 +4,7 @@ import './LandingPage.css'
 import { fetchJobs, postJob, patchJob, patchCandidate, fetchCandidates } from '../services/jobsApi'
 import TalentHeatmap from './TalentHeatmap'
 import { rankCandidates } from '../services/rankingEngine'
+import RecruiterProfileDashboard from './RecruiterProfileDashboard'
 
 // ─── SVG nav icons ──────────────────────────────────────────────────────────
 const Icon = ({ d, vb = '0 0 24 24', size = 16 }) => (
@@ -85,7 +86,7 @@ const JobCard = ({ title, dept, location, postedAt, urgency, matchesCount, accep
 // ─── Matching Matrix View  ─────────────────────────────────────────────────────
 // Layout follows the reference "Matching Matrix Command Center" HTML exactly.
 // Colours: dark navy oklch palette, amber talent dots, teal/green accents.
-const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
+const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandidateProfile }) => {
   const [candidates, setCandidates]       = useState(candidatesData?.candidates    || [])
   const [selectedCandidate, setSelectedCandidate] = useState(null)
   const [isClosed, setIsClosed]                   = useState(false)
@@ -446,7 +447,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData }) => {
 
                   {/* Reveal CTA — accepted only */}
                   {st.isGreen && (
-                    <div className="mmc-reveal" onClick={e => { e.stopPropagation(); setSelectedCandidate(c) }}>
+                    <div className="mmc-reveal" onClick={e => { e.stopPropagation(); onOpenCandidateProfile?.(c) }}>
                       REVEAL &amp; UNDERWRITE
                     </div>
                   )}
@@ -2192,6 +2193,7 @@ const LandingPage = ({ user, onLogout }) => {
   const [closedJobs, setClosedJobs]   = useState([])
   const [jobsTab, setJobsTab]         = useState('open') // 'open' | 'closed'
   const [allCandidates, setAllCandidates] = useState([])
+  const [selectedCandidateProfile, setSelectedCandidateProfile] = useState(null)
 
   // Load jobs + candidates from API on mount
   useEffect(() => {
@@ -2548,8 +2550,38 @@ const LandingPage = ({ user, onLogout }) => {
               .then(data => setAllCandidates(data.candidates || []))
               .catch(() => {})
             setView('jobs')
-          }} onClose={handleCloseJob} />}
+          }} onClose={handleCloseJob} onOpenCandidateProfile={async (candidate) => {
+            try {
+              const response = await fetch(`/api/profiles/ca${String(candidate.id).padStart(4, '0')}`)
+              if (!response.ok) throw new Error(`fetch profile failed: ${response.status}`)
+              const raw = await response.json()
+              const parseYears = (str) => {
+                if (!str) return 0
+                const m = String(str).match(/(\d+)\s*year/)
+                return m ? parseInt(m[1], 10) : 0
+              }
+              const experience = (raw.experience_history || []).map(e => ({ company: e.company || '', title: e.title || '', startYear: e.start_date ? parseInt(e.start_date.split('-')[0], 10) : null, endYear: e.end_date === 'Present' ? new Date().getFullYear() : (e.end_date ? parseInt(e.end_date.split('-')[0], 10) : null), duration: parseYears(e.duration), current: e.end_date === 'Present', relevantToRole: e.relevant_to_role, focus: e.focus || '' }))
+              const education = (raw.education || []).map(e => ({ degree: e.degree || '', institution: e.institution || '', graduationYear: e.year || '' }))
+              const skillData = (raw.technical_skills || []).map((s, i) => ({ name: s, level: Math.max(50, 92 - i * 5) }))
+              setSelectedCandidateProfile({
+                personalInfo: { name: raw.full_name || `${raw.first_name || ''} ${raw.last_name || ''}`.trim(), title: raw.current_role_title || 'Candidate', email: raw.login_id || '', company: raw.current_company || '', candidateId: raw.candidate_id || '' },
+                skills: skillData,
+                experience,
+                education,
+                summary: { totalYearsExperience: parseYears(raw.total_experience), totalRelevantExperience: parseYears(raw.total_relevant_experience), totalSkills: skillData.length, educationLevel: education.length > 0 ? education[0].degree : 'N/A' },
+                competencyScores: raw.competency_scores || {},
+                recommendation: raw.recommendation || '',
+                signatureProject: raw.signature_project || '',
+                justification: raw.justification || '',
+                interviewProbes: raw.interview_probes || [],
+              })
+              setView('candidate-profile')
+            } catch (err) {
+              console.error('open candidate profile failed:', err)
+            }
+          }} />}
           {view === 'cv-profile' && <CVProfileView onBack={() => setView('candidates')} />}
+          {view === 'candidate-profile' && <RecruiterProfileDashboard data={selectedCandidateProfile} onBack={() => setView('matches')} />}
 
           {/* ANALYTICS */}
           {view === 'analytics' && (
