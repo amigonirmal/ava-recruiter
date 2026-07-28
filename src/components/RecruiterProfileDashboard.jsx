@@ -69,9 +69,10 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
     : []
 
   const [communicationStage, setCommunicationStage] = useState('Contacted')
+  const [activeCommModal, setActiveCommModal] = useState(null)
   const email = personalInfo?.email || 'candidate@ava.com'
   const phone = personalInfo?.phone || '+44 20 7946 0958'
-  const chatMessage = encodeURIComponent(`Hi ${personalInfo?.name || 'there'}, this is AVA Recruiter. We'd like to discuss your profile and next steps for this opportunity.`)
+  const chatMessage = `Hi ${personalInfo?.name || 'there'}, this is AVA Recruiter. We'd like to discuss your profile and next steps for this opportunity.`
 
   return (
     <div style={{ background: 'oklch(11% 0.025 250)', color: 'oklch(96% 0.005 250)', minHeight: '100vh', padding: 'clamp(12px, 2vw, 28px)', fontFamily: 'Satoshi, Inter, sans-serif' }}>
@@ -102,9 +103,9 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   <img src="/assets/profile-photo.avif" alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 20, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
-                  <div style={{ fontSize: 10, color: TEAL, letterSpacing: '0.1em', fontWeight: 600, marginTop: 3 }}>{role}</div>
-                  {company && <div style={{ fontSize: 9, color: 'oklch(65% 0.02 250)', letterSpacing: '0.06em', marginTop: 2 }}>{company}</div>}
+                  <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1.1 }}>{name}</div>
+                  <div style={{ fontSize: 9, color: TEAL, letterSpacing: '0.1em', fontWeight: 600, marginTop: 3 }}>{role}</div>
+                  {company && <div style={{ fontSize: 8, color: 'oklch(65% 0.02 250)', letterSpacing: '0.06em', marginTop: 2 }}>{company}</div>}
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
                     {['PROFILE: 94%', 'GDPR ✓', 'ICAEW ✓'].map(chip => (
                       <span key={chip} style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', padding: '3px 7px', borderRadius: 3, background: 'oklch(60% 0.19 195 / 0.1)', border: '1px solid oklch(60% 0.19 195 / 0.3)', color: TEAL }}>{chip}</span>
@@ -125,9 +126,9 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: 10, letterSpacing: '0.1em', fontWeight: 700, color: 'oklch(58% 0.02 250)' }}>COMMUNICATION</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <a className="rl-ghost-btn" href={`mailto:${email}?subject=${encodeURIComponent('AVA Recruiter Opportunity')}&body=${chatMessage}`} style={{ textDecoration: 'none' }}>EMAIL</a>
-                    <a className="rl-ghost-btn" href={`tel:${phone.replace(/\s+/g, '')}`} style={{ textDecoration: 'none' }}>CALL</a>
-                    <a className="rl-cta-btn" href={`mailto:${email}?subject=${encodeURIComponent('AVA Recruiter Chat')}&body=${chatMessage}`} style={{ textDecoration: 'none' }}>CHAT</a>
+                    <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal('email')}>EMAIL</button>
+                    <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal('call')}>CALL</button>
+                    <button type="button" className="rl-cta-btn" onClick={() => setActiveCommModal('chat')}>CHAT</button>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -318,6 +319,107 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
             </div>
           </div>
         </section>
+        {/* ── EMAIL modal (centred overlay) ── */}
+        {activeCommModal === 'email' && (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.65)', display:'grid', placeItems:'center', padding:16, zIndex:1000 }} onClick={() => setActiveCommModal(null)}>
+            <div style={{ width:'min(560px, 100%)', background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:8, padding:18, boxShadow:'0 0 24px oklch(60% 0.22 195 / 0.18)' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                <div style={{ fontSize:12, fontWeight:800, letterSpacing:'0.08em' }}>EMAIL CANDIDATE</div>
+                <button type="button" className="rl-ghost-btn" onClick={() => setActiveCommModal(null)}>CLOSE</button>
+              </div>
+              <div style={{ display:'grid', gap:12 }}>
+                <div><div style={LABEL_SM}>FROM</div><div style={{ marginTop:4, fontSize:13 }}>recruiter@ava.com</div></div>
+                <div><div style={LABEL_SM}>TO</div><div style={{ marginTop:4, fontSize:13 }}>{email}</div></div>
+                <div><div style={LABEL_SM}>SUBJECT</div><div style={{ marginTop:4, fontSize:13 }}>AVA Recruiter Opportunity</div></div>
+                <div><div style={LABEL_SM}>DRAFT EMAIL</div><div style={{ marginTop:4, minHeight:120, background:'oklch(12% 0.02 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:6, padding:12, lineHeight:1.6 }}>{chatMessage}</div></div>
+                <div style={{ display:'flex', justifyContent:'flex-end' }}><button type="button" className="rl-cta-btn" onClick={() => setActiveCommModal(null)}>SEND</button></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CALL popup (bottom-right, compact) ── */}
+        {activeCommModal === 'call' && (
+          <div style={{ position:'fixed', bottom:28, right:28, zIndex:1100, width:300, background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,0.55)', overflow:'hidden' }}>
+            {/* header */}
+            <div style={{ background:'oklch(19% 0.04 250)', padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ fontSize:16 }}>📞</span>
+                <span style={{ fontSize:11, fontWeight:800, letterSpacing:'0.08em', color:'oklch(90% 0.005 250)' }}>CALL CANDIDATE</span>
+              </div>
+              <button type="button" onClick={() => setActiveCommModal(null)} style={{ background:'none', border:'none', color:'oklch(55% 0.02 250)', cursor:'pointer', fontSize:16, lineHeight:1, padding:2 }}>✕</button>
+            </div>
+            {/* body */}
+            <div style={{ padding:'16px 14px', display:'grid', gap:14 }}>
+              <div>
+                <div style={LABEL_SM}>PHONE NUMBER</div>
+                <div style={{ marginTop:6, fontSize:20, fontWeight:800, color:TEAL, letterSpacing:'0.05em' }}>{phone}</div>
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <a href={`tel:${phone.replace(/\s+/g, '')}`} style={{ flex:1, textDecoration:'none', display:'flex', alignItems:'center', justifyContent:'center', gap:6, background:'oklch(45% 0.17 145)', color:'#fff', fontWeight:800, fontSize:11, letterSpacing:'0.1em', padding:'10px 0', borderRadius:6, border:'none', cursor:'pointer' }}>
+                  📞 DIAL NOW
+                </a>
+                <button type="button" onClick={() => setActiveCommModal(null)} style={{ padding:'10px 14px', background:'transparent', border:'1px solid oklch(35% 0.03 250)', borderRadius:6, color:'oklch(70% 0.02 250)', fontWeight:700, fontSize:11, letterSpacing:'0.08em', cursor:'pointer' }}>
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CHAT bot popup (bottom-right) ── */}
+        {activeCommModal === 'chat' && (
+          <div style={{ position:'fixed', bottom:28, right:28, zIndex:1100, width:320, height:420, display:'flex', flexDirection:'column', background:'oklch(15% 0.03 250)', border:'1px solid oklch(45% 0.16 195 / 0.45)', borderRadius:14, boxShadow:'0 8px 40px rgba(0,0,0,0.6)', overflow:'hidden' }}>
+            {/* header bar */}
+            <div style={{ background:'oklch(19% 0.04 250)', padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:9 }}>
+                <div style={{ width:30, height:30, borderRadius:'50%', background:`oklch(25% 0.05 195)`, border:`2px solid ${TEAL}`, display:'grid', placeItems:'center', fontSize:14 }}>🤖</div>
+                <div>
+                  <div style={{ fontSize:11, fontWeight:800, letterSpacing:'0.06em', color:'oklch(90% 0.005 250)' }}>AVA RECRUITER</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:4, marginTop:1 }}>
+                    <span style={{ width:6, height:6, borderRadius:'50%', background:'#22C55E', boxShadow:'0 0 5px rgba(34,197,94,0.8)', display:'inline-block' }} />
+                    <span style={{ fontSize:8, color:'#22C55E', letterSpacing:'0.08em', fontWeight:700 }}>ONLINE</span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" onClick={() => setActiveCommModal(null)} style={{ background:'none', border:'none', color:'oklch(55% 0.02 250)', cursor:'pointer', fontSize:16, lineHeight:1, padding:2 }}>✕</button>
+            </div>
+
+            {/* message thread */}
+            <div style={{ flex:1, overflowY:'auto', padding:'14px 12px', display:'flex', flexDirection:'column', gap:10, background:'oklch(12% 0.025 250)' }}>
+              {/* bot message */}
+              <div style={{ display:'flex', alignItems:'flex-end', gap:7 }}>
+                <div style={{ width:24, height:24, borderRadius:'50%', background:'oklch(25% 0.05 195)', border:`1.5px solid ${TEAL}`, display:'grid', placeItems:'center', fontSize:11, flexShrink:0 }}>🤖</div>
+                <div style={{ maxWidth:'75%', background:'oklch(19% 0.04 250)', border:'1px solid oklch(30% 0.04 195 / 0.5)', borderRadius:'12px 12px 12px 2px', padding:'9px 12px', fontSize:12, lineHeight:1.55, color:'oklch(88% 0.01 250)' }}>
+                  {chatMessage}
+                </div>
+              </div>
+              {/* candidate reply placeholder */}
+              <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                <div style={{ maxWidth:'75%', background:`oklch(45% 0.16 195 / 0.18)`, border:`1px solid oklch(55% 0.16 195 / 0.3)`, borderRadius:'12px 12px 2px 12px', padding:'9px 12px', fontSize:12, lineHeight:1.55, color:TEAL }}>
+                  Thanks for reaching out! I'd be happy to discuss this opportunity.
+                </div>
+              </div>
+              {/* typing indicator */}
+              <div style={{ display:'flex', alignItems:'flex-end', gap:7 }}>
+                <div style={{ width:24, height:24, borderRadius:'50%', background:'oklch(25% 0.05 195)', border:`1.5px solid ${TEAL}`, display:'grid', placeItems:'center', fontSize:11, flexShrink:0 }}>🤖</div>
+                <div style={{ background:'oklch(19% 0.04 250)', border:'1px solid oklch(30% 0.04 195 / 0.5)', borderRadius:'12px 12px 12px 2px', padding:'9px 14px', display:'flex', gap:4, alignItems:'center' }}>
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:TEAL, opacity:0.9, display:'inline-block' }} />
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:TEAL, opacity:0.6, display:'inline-block' }} />
+                  <span style={{ width:6, height:6, borderRadius:'50%', background:TEAL, opacity:0.3, display:'inline-block' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* input row */}
+            <div style={{ flexShrink:0, padding:'10px 12px', background:'oklch(17% 0.03 250)', borderTop:'1px solid oklch(26% 0.03 250)', display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ flex:1, background:'oklch(12% 0.025 250)', border:'1px solid oklch(30% 0.03 250)', borderRadius:20, padding:'7px 13px', fontSize:12, color:'oklch(45% 0.02 250)', letterSpacing:'0.02em', userSelect:'none' }}>
+                Type a message…
+              </div>
+              <button type="button" style={{ width:34, height:34, borderRadius:'50%', background:TEAL, border:'none', cursor:'default', display:'grid', placeItems:'center', fontSize:14, flexShrink:0 }}>➤</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
