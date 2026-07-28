@@ -441,18 +441,55 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
                     <div style={{ fontSize:9, fontWeight:800, color:scoreCol, marginTop:2 }}>
                       {rc.match_percentage.toFixed(1)}% MATCH
                     </div>
-                    {/* Talent score out of 1000 */}
-                    {c.talentScore != null && (
-                      <div style={{ fontSize:7.5, fontWeight:700, color:'oklch(65% 0.15 195)', marginTop:2, letterSpacing:'0.04em' }}>
-                        ◈ {c.talentScore}<span style={{ fontSize:6.5, opacity:0.7 }}>/1000</span>
-                      </div>
-                    )}
                     {rc.data_completeness !== 'complete' && (
                       <div style={{ fontSize:7, color:'oklch(72% 0.15 80)', marginTop:1, lineHeight:1.3 }}>
                         ⚠ {rc.data_completeness}
                       </div>
                     )}
                   </div>
+
+                  {/* ── Talent Credit Score badge ── */}
+                  {(() => {
+                    const tcs = c.talentScore ?? Math.round(600 + rc.match_percentage * 3.5)
+                    const pct = Math.round((tcs / 1000) * 100)
+                    const tcsColor = tcs >= 800 ? 'oklch(70% 0.17 145)' : tcs >= 600 ? 'oklch(72% 0.15 195)' : 'oklch(72% 0.16 85)'
+                    const rating = tcs >= 900 ? 'AAA+' : tcs >= 800 ? 'AA+' : tcs >= 700 ? 'A+' : tcs >= 600 ? 'BBB' : 'BB'
+                    const circ = 2 * Math.PI * 10   // r=10 → circumference ≈ 62.8
+                    const dash = (pct / 100) * circ
+                    return (
+                      <div style={{
+                        display:'flex', alignItems:'center', gap:6,
+                        background:'oklch(14% 0.025 250)',
+                        border:`1px solid ${tcsColor.replace(')', ' / 0.3)')}`,
+                        borderRadius:5, padding:'5px 7px', marginTop:5,
+                      }}>
+                        {/* Mini arc ring */}
+                        <svg width={26} height={26} viewBox="0 0 26 26" style={{ flexShrink:0 }}>
+                          <circle cx={13} cy={13} r={10} fill="none"
+                            stroke="oklch(24% 0.03 250)" strokeWidth={3} />
+                          <circle cx={13} cy={13} r={10} fill="none"
+                            stroke={tcsColor} strokeWidth={3}
+                            strokeDasharray={`${dash} ${circ}`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 13 13)" />
+                          <text x={13} y={17} textAnchor="middle"
+                            style={{ fontSize:6, fontWeight:800, fill:tcsColor, fontFamily:'inherit' }}>
+                            {pct}%
+                          </text>
+                        </svg>
+                        <div style={{ minWidth:0 }}>
+                          <div style={{ fontSize:7, color:'oklch(48% 0.02 250)', letterSpacing:'0.08em', fontWeight:700 }}>
+                            TALENT CREDIT
+                          </div>
+                          <div style={{ display:'flex', alignItems:'baseline', gap:3, marginTop:1 }}>
+                            <span style={{ fontSize:11, fontWeight:900, color:tcsColor, lineHeight:1 }}>{tcs}</span>
+                            <span style={{ fontSize:6.5, color:'oklch(45% 0.02 250)' }}>/1000</span>
+                            <span style={{ fontSize:7.5, fontWeight:800, color:tcsColor, marginLeft:2 }}>[{rating}]</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Status badge */}
                   <div style={{ fontSize:7, fontWeight:800, letterSpacing:'0.07em', textTransform:'uppercase',
