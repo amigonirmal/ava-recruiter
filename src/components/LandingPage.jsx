@@ -342,7 +342,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
       </div>
 
       {/* ── BODY: matrix + monitor ── */}
-      <div style={{ display:'flex', flex:1 }}>
+      <div className="mmc-body">
 
         {/* ── MATCHING MATRIX (centre) ── */}
         <div style={{ flex:1, padding:'12px 14px', display:'flex', flexDirection:'column', gap:10, minWidth:0 }}>
@@ -488,7 +488,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
           </div>
 
           {/* ── BOTTOM ROW ── */}
-          <div style={{ display:'grid', gridTemplateColumns:'1.6fr 1fr', gap:8 }}>
+          <div className="mmc-bottom-row">
 
             {/* Heatmap — React Leaflet */}
             <div className="mmc-panel">
@@ -513,8 +513,7 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
         </div>
 
         {/* ── INBOUND LIQUIDITY MONITOR (right) ── */}
-        <div style={{
-          width:240, flexShrink:0,
+        <div className="mmc-monitor" style={{
           background:'oklch(14% 0.025 250)',
           borderLeft:'1px solid oklch(45% 0.16 195 / 0.4)',
           padding:12,

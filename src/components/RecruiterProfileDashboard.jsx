@@ -116,7 +116,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
           </div>
         </header>
 
-        <main style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.2fr 0.95fr', gap: 14, alignItems: 'start' }}>
+        <main className="rpd-grid">
           <div style={COLUMN}>
             <section style={CARD}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -170,7 +170,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
                   </div>
 
                   {/* contact quick-info */}
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <div className="rpd-contact-chips" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'oklch(20% 0.04 195 / 0.5)', border: '1px solid oklch(50% 0.16 195 / 0.25)', borderRadius: 4, padding: '4px 9px' }}>
                       <span style={{ fontSize: 9, color: 'oklch(55% 0.02 250)', letterSpacing: '0.06em' }}>EMAIL</span>
                       <span style={{ fontSize: 9, fontWeight: 700, color: TEAL }}>{email}</span>
@@ -183,7 +183,7 @@ const RecruiterProfileDashboard = ({ data, onBack }) => {
 
                   {/* stage pipeline */}
                   <div style={{ fontSize: 9, color: 'oklch(60% 0.06 195)', letterSpacing: '0.09em', fontWeight: 700, marginBottom: 7 }}>COMMUNICATION STAGE</div>
-                  <div style={{ display: 'flex', gap: 0, flexWrap: 'nowrap', overflow: 'hidden', borderRadius: 6, border: '1px solid oklch(40% 0.1 195 / 0.3)' }}>
+                  <div className="rpd-stage-bar" style={{ display: 'flex', gap: 0, flexWrap: 'nowrap', overflow: 'hidden', borderRadius: 6, border: '1px solid oklch(40% 0.1 195 / 0.3)' }}>
                     {['Contacted', 'Called', 'Interview Scheduled', 'Interviewed'].map((stage, idx, arr) => {
                       const active = communicationStage === stage
                       const past = arr.indexOf(communicationStage) > idx

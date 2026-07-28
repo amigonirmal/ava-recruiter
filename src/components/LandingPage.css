@@ -4062,3 +4062,235 @@
   color: oklch(42% 0.02 250);
   letter-spacing: 0.04em;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — ava-recruiter
+   Covers: TA Command Center, Matching Matrix, Candidate Profile,
+           Dashboard, Jobs, Settings across Android & iOS browsers
+════════════════════════════════════════════════════════════════ */
+
+/* ── Matching Matrix body: flex → column on mobile ── */
+.mmc-body {
+  display: flex;
+  flex: 1;
+}
+
+/* ── Right monitor panel class so we can hide/reflow it ── */
+.mmc-monitor {
+  width: 240px;
+  flex-shrink: 0;
+}
+
+/* ── Bottom row of matrix ── */
+.mmc-bottom-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 8px;
+}
+
+/* ── Candidate Profile 3-col grid ── */
+.rpd-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 0.95fr;
+  gap: 14px;
+  align-items: start;
+}
+
+/* ── Top chrome bar of Matching Matrix ── */
+.mmc-chrome-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Requisition banner action cluster ── */
+.mmc-req-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════ ≤ 900px ═══════════════════════════ */
+@media (max-width: 900px) {
+  /* Collapse right monitor below the matrix */
+  .mmc-body {
+    flex-direction: column;
+  }
+  .mmc-monitor {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid oklch(45% 0.16 195 / 0.4);
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .mmc-bottom-row {
+    grid-template-columns: 1fr;
+  }
+  /* Candidate profile: 3-col → 1-col */
+  .rpd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════ ≤ 768px ═══════════════════════════ */
+@media (max-width: 768px) {
+  /* ── Matching Matrix card grid: 3 cols on mobile ── */
+  .mmc-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Requisition banner: stack vertically */
+  .mmc-req-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .mmc-req-actions {
+    width: 100%;
+  }
+
+  /* Hide the long ethical tag text in topbar on small screens */
+  .rl-ethical-tag { display: none; }
+
+  /* Scorecard modal: full screen */
+  .sc-modal {
+    width: 100vw !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+  }
+  .sc-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Candidate profile stage buttons: wrap */
+  .rpd-stage-bar {
+    flex-wrap: wrap !important;
+  }
+  /* Dashboard two-col → one-col already handled but enforce here */
+  .rl-two-col { grid-template-columns: 1fr !important; }
+
+  /* Make candidate row hide less important columns */
+  .rl-candidate-score { display: none; }
+  .rl-candidate-status { display: none; }
+}
+
+/* ═══════════════════════════ ≤ 600px ═══════════════════════════ */
+@media (max-width: 600px) {
+  /* Matrix cards: 2 cols */
+  .mmc-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Top chrome bar: stack */
+  .mmc-chrome-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .mmc-chrome-bar > *:last-child {
+    align-self: flex-end;
+  }
+
+  /* Tabs wrap */
+  .mmc-tabs {
+    flex-wrap: wrap;
+  }
+
+  /* HCMT / weight view: force single col */
+  .hct-body { flex-direction: column !important; }
+  .hct-left, .hct-right { width: 100% !important; border-right: none !important; border-bottom: 1px solid oklch(45% 0.12 195 / 0.3); }
+
+  /* Funnel stages full width */
+  .rl-funnel-stage { width: 100% !important; }
+
+  /* Jobs full grid → 1 col */
+  .rl-jobs-full-grid { grid-template-columns: 1fr !important; }
+
+  /* Topbar: shrink padding */
+  .rl-topbar { padding: 0 0.75rem; height: 48px; }
+  .rl-topbar-title { font-size: 0.7rem; }
+
+  /* Main padding */
+  .rl-main { padding: 0.75rem !important; }
+
+  /* Post card form row: 1 col */
+  .rl-form-row { grid-template-columns: 1fr !important; }
+  .rl-form-field.rl-span-2 { grid-column: span 1 !important; }
+
+  /* Candidate profile: contact chips wrap */
+  .rpd-contact-chips {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Dashboard stats: 2 col */
+  .rl-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ═══════════════════════════ ≤ 420px ═══════════════════════════ */
+@media (max-width: 420px) {
+  /* Matrix cards: 1 col */
+  .mmc-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stats: 1 col */
+  .rl-stats-grid { grid-template-columns: 1fr !important; }
+
+  /* Scorecard weight legend wraps */
+  .sc-weight-legend { flex-wrap: wrap; gap: 6px; }
+
+  /* Candidate profile communication stage bar: single col */
+  .rpd-stage-bar { flex-direction: column; }
+
+  /* Post actions: stack */
+  .rl-post-actions { flex-direction: column; }
+
+  /* Reduce main padding */
+  .rl-main { padding: 0.5rem !important; }
+
+  /* Insight body: stack */
+  .rl-insight-body { flex-direction: column; }
+}
+
+/* ── Touch-friendly minimum tap targets ── */
+@media (max-width: 768px) {
+  .rl-nav-item,
+  .rl-cta-btn,
+  .rl-ghost-btn,
+  .rl-job-btn,
+  .rl-view-btn,
+  .mm-back-btn-chrome,
+  .mmc-close-btn,
+  .mmc-reveal {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Inputs: prevent iOS zoom on focus (font-size ≥ 16px) */
+  .rl-form-field input,
+  .rl-form-field select,
+  .rl-form-field textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ── Safe area insets for iPhone notch / home bar ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .rl-sidebar {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .rl-footer {
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom));
+  }
+  .rl-topbar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
