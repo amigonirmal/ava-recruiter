@@ -532,11 +532,6 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
             </div>
             <div style={{ fontSize:9, color:'oklch(58% 0.02 250)', marginBottom:8, letterSpacing:'0.04em' }}>
               {rankedList.filter(r => r._candidate.jobApplicationStatus === 'accepted').length} ACCEPTED
-              {rankedList.filter(r => r._candidate.jobApplicationStatus === 'rejected').length > 0 && (
-                <span style={{ color:'oklch(62% 0.22 25)', marginLeft:6 }}>
-                  · {rankedList.filter(r => r._candidate.jobApplicationStatus === 'rejected').length} REJECTED
-                </span>
-              )}
             </div>
 
             {/* Column headers */}
@@ -548,12 +543,12 @@ const MatchingMatrixView = ({ job, onBack, onClose, candidatesData, onOpenCandid
               <span style={{ width:46, textAlign:'right' }}>MATCH</span>
             </div>
 
-            {/* Accepted + Rejected ranked rows */}
+            {/* Accepted ranked rows only */}
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              {rankedList.filter(rc => ['accepted','rejected'].includes(rc._candidate.jobApplicationStatus)).map((rc, idx) => {
+              {rankedList.filter(rc => rc._candidate.jobApplicationStatus === 'accepted').map((rc, idx) => {
                 const isSelected = selectedCandidate?.id === rc._candidate.id
-                const isAccepted = rc._candidate.jobApplicationStatus === 'accepted'
-                const isRejected = rc._candidate.jobApplicationStatus === 'rejected'
+                const isAccepted = true
+                const isRejected = false
                 const scoreCol = rc.match_percentage >= 70
                   ? 'oklch(70% 0.17 145)'
                   : rc.match_percentage >= 45
